@@ -1,0 +1,7 @@
+{
+  "applicant_id": "APP_1000",
+  "existing_customer": true,
+  "tenure_months": 74,
+  "past_loans_with_bank": 2,
+  "past_loan_defaults": 0
+}

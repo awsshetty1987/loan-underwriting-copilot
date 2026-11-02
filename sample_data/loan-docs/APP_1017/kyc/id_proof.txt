@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Suresh Nair
+PAN: WJMVU7118O
+Aadhaar (masked): XXXX-XXXX-3881
+Address: 179 MG Road, Bengaluru, Karnataka

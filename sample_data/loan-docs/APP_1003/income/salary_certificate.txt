@@ -1,0 +1,22 @@
+SALARY SLIP (Synthetic Test Data, Not Real)
+
+Employee Name: Rahul Menon
+Employer: Wipro
+Designation: Senior Associate
+PAN: DCMDL6635T
+Date of Joining: 2021-09-26
+Pay Date: 2026-06-26
+
+EARNINGS
+Basic: 30000
+HRA: 15000
+Special Allowance: 15000
+Gross Pay: 60000
+
+DEDUCTIONS
+Provident Fund: 3600
+Professional Tax: 200
+Income Tax (TDS): 4200
+Total Deductions: 8000
+
+Net Pay: 52000

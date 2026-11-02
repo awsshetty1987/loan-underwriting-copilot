@@ -1,0 +1,22 @@
+SALARY SLIP (Synthetic Test Data, Not Real)
+
+Employee Name: Suresh Reddy
+Employer: TCS
+Designation: Senior Associate
+PAN: EVPRF5342Q
+Date of Joining: 2019-04-26
+Pay Date: 2026-06-26
+
+EARNINGS
+Basic: 37500
+HRA: 18800
+Special Allowance: 18700
+Gross Pay: 75000
+
+DEDUCTIONS
+Provident Fund: 4500
+Professional Tax: 200
+Income Tax (TDS): 7400
+Total Deductions: 12100
+
+Net Pay: 62900

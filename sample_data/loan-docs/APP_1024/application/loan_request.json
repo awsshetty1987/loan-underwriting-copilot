@@ -1,0 +1,8 @@
+{
+  "applicant_id": "APP_1024",
+  "loan_amount": 150000,
+  "tenure_months": 24,
+  "interest_rate": 14.0,
+  "purpose": "Medical",
+  "application_date": "2026-06-26"
+}

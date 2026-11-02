@@ -1,0 +1,54 @@
+{
+  "family": "loan-copilot",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {"operatingSystemFamily": "LINUX", "cpuArchitecture": "X86_64"},
+  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/loan-copilot-execution",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/loan-copilot-task",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "<ACCOUNT_ID>.dkr.ecr.eu-north-1.amazonaws.com/loan-copilot:<TAG>",
+      "essential": true,
+      "portMappings": [{"containerPort": 8000, "protocol": "tcp"}],
+      "environment": [
+        {"name": "STORAGE_BACKEND", "value": "s3"},
+        {"name": "S3_BUCKET", "value": "loan-bucket2026"},
+        {"name": "AWS_REGION", "value": "eu-north-1"},
+        {"name": "CREDIT_BUREAU_URL", "value": "http://127.0.0.1:9000/credit-report"},
+        {"name": "OPENAI_MODEL", "value": "gpt-4o-mini"}
+      ],
+      "secrets": [
+        {"name": "API_KEYS", "valueFrom": "arn:aws:secretsmanager:eu-north-1:<ACCOUNT_ID>:secret:loan-copilot:API_KEYS::"},
+        {"name": "OPENAI_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-north-1:<ACCOUNT_ID>:secret:loan-copilot:OPENAI_API_KEY::"},
+        {"name": "CREDIT_BUREAU_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-north-1:<ACCOUNT_ID>:secret:loan-copilot:CREDIT_BUREAU_API_KEY::"},
+        {"name": "DATABASE_URL", "valueFrom": "arn:aws:secretsmanager:eu-north-1:<ACCOUNT_ID>:secret:loan-copilot:DATABASE_URL::"}
+      ],
+      "dependsOn": [{"containerName": "bureau", "condition": "START"}],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {"awslogs-group": "/ecs/loan-copilot", "awslogs-region": "eu-north-1", "awslogs-stream-prefix": "api"}
+      }
+    },
+    {
+      "name": "bureau",
+      "image": "<ACCOUNT_ID>.dkr.ecr.eu-north-1.amazonaws.com/loan-copilot:<TAG>",
+      "essential": true,
+      "command": ["uvicorn", "copilot.bureau_mock:app", "--host", "127.0.0.1", "--port", "9000"],
+      "environment": [
+        {"name": "STORAGE_BACKEND", "value": "s3"},
+        {"name": "S3_BUCKET", "value": "loan-bucket2026"},
+        {"name": "AWS_REGION", "value": "eu-north-1"}
+      ],
+      "secrets": [
+        {"name": "CREDIT_BUREAU_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-north-1:<ACCOUNT_ID>:secret:loan-copilot:CREDIT_BUREAU_API_KEY::"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {"awslogs-group": "/ecs/loan-copilot", "awslogs-region": "eu-north-1", "awslogs-stream-prefix": "bureau"}
+      }
+    }
+  ]
+}

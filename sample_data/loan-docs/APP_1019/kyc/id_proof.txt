@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Rohan Menon
+PAN: CQHIV8953G
+Aadhaar (masked): XXXX-XXXX-8939
+Address: 161 MG Road, Bengaluru, Karnataka

@@ -1,0 +1,22 @@
+SALARY SLIP (Synthetic Test Data, Not Real)
+
+Employee Name: Meera Rao
+Employer: Wipro
+Designation: Senior Associate
+PAN: HZPZN4119D
+Date of Joining: 2020-10-26
+Pay Date: 2026-06-26
+
+EARNINGS
+Basic: 45000
+HRA: 22500
+Special Allowance: 22500
+Gross Pay: 90000
+
+DEDUCTIONS
+Provident Fund: 5400
+Professional Tax: 200
+Income Tax (TDS): 10600
+Total Deductions: 16200
+
+Net Pay: 73800

@@ -1,0 +1,8 @@
+{
+  "applicant_id": "APP_1012",
+  "loan_amount": 200000,
+  "tenure_months": 24,
+  "interest_rate": 12.0,
+  "purpose": "Travel",
+  "application_date": "2026-06-26"
+}

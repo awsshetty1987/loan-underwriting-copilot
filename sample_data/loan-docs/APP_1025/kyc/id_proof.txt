@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Arjun Rao
+PAN: ARJPR4821K
+Aadhaar (masked): XXXX-XXXX-4821
+Address: 12 Test Street, Pune, Maharashtra

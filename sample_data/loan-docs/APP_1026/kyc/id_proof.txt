@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Kavya Shah
+PAN: KAVPS7314M
+Aadhaar (masked): XXXX-XXXX-7314
+Address: 12 Test Street, Pune, Maharashtra

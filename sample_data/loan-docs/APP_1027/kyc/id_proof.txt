@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Rohan Das
+PAN: ROHPD5590Q
+Aadhaar (masked): XXXX-XXXX-5590
+Address: 12 Test Street, Pune, Maharashtra

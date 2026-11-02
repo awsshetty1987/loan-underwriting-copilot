@@ -1,0 +1,22 @@
+SALARY SLIP (Synthetic Test Data, Not Real)
+
+Employee Name: Sneha Gupta
+Employer: TCS
+Designation: Senior Associate
+PAN: CHDMI8428U
+Date of Joining: 2019-07-26
+Pay Date: 2026-06-26
+
+EARNINGS
+Basic: 22500
+HRA: 11200
+Special Allowance: 11300
+Gross Pay: 45000
+
+DEDUCTIONS
+Provident Fund: 2700
+Professional Tax: 200
+Income Tax (TDS): 1100
+Total Deductions: 4000
+
+Net Pay: 41000

@@ -1,0 +1,77 @@
+"""The checks themselves, in plain code: planted cases are caught, normal applicants raise no false alarm."""
+import json
+
+import pytest
+
+from copilot import storage
+from copilot import tools as t
+
+PLANTED = {"APP_1025": "salary slip doesn't add up", "APP_1026": "balance doesn't add up",
+           "APP_1027": "exact copy of APP_1008", "APP_1028": "FOIR"}
+
+
+def all_flags(app: str) -> list[str]:
+    slip = t.parse_salary_certificate(t.get_document(app, "income", "salary_certificate.txt"))
+    report = json.loads(storage.get_text(f"loan-docs/{app}/credit-bureau/report.json"))
+    rules = t.get_policy_rules()
+    afford = t.check_affordability(app, report, slip, rules)
+    return (t.check_consistency(slip["declared_income"], t.get_salary_credits(app, slip["employer"]), rules,
+                                slip["net_pay"])
+            + t.check_slip_arithmetic(slip) + t.check_balance_arithmetic(t.get_statement_rows(app))
+            + t.check_file_reuse(app) + afford["flags"])
+
+
+def test_29_applicants():
+    apps = t.list_applicants()
+    assert len(apps) == 29 and apps[0] == "APP_1000" and apps[-1] == "APP_1028"
+
+
+@pytest.mark.parametrize("app,words", PLANTED.items())
+def test_planted_case_is_caught(app, words):
+    assert any(words in f and f.startswith("MAJOR") for f in all_flags(app))
+
+
+def test_short_job_tenure_flagged():
+    assert any("months in current job" in f for f in all_flags("APP_1028"))
+
+
+def test_no_document_alarms_on_normal_applicants():
+    alarms = {a: f for a in t.list_applicants() if a not in PLANTED
+              for f in all_flags(a) if f.startswith("MAJOR document")}
+    assert alarms == {}
+
+
+def test_original_is_not_punished_for_a_later_copy():
+    assert not any("copy" in f for f in all_flags("APP_1008"))
+
+
+def test_foir_case():
+    assert any("FOIR" in f for f in all_flags("APP_1009"))
+
+
+def test_inr_and_emi():
+    assert t.inr(1500000) == "Rs.15,00,000" and t.inr(999) == "Rs.999"
+    assert round(t.monthly_emi(100000, 12, 12)) == 8885
+
+
+@pytest.mark.parametrize("bad", ["APP_12", "app_1001", "APP_1001/../x", ""])
+def test_applicant_id_is_validated(bad):
+    with pytest.raises(ValueError):
+        t.check_applicant_id(bad)
+
+
+def test_storage_refuses_paths_outside_the_data_folder():
+    with pytest.raises(ValueError):
+        storage.get_text("../../etc/passwd")
+
+
+def test_gpt_answer_with_wrong_shapes_is_ignored(monkeypatch):
+    """GPT once returned employer as a dict; only well-shaped values may be used."""
+    bad = json.dumps({"declared_income": {"x": 1}, "employer": {"name": "HDFC"}, "pan": ["ABCDE1234F"],
+                      "earnings": "lots", "net_pay": "Rs.50,000"})
+    monkeypatch.setattr(t, "call_llm", lambda *a, **k: bad)
+    text = t.get_document("APP_1001", "income", "salary_certificate.txt")
+    plain = t.parse_salary_certificate(text)
+    fields = t.extract_income_fields(text)
+    assert fields["employer"] == plain["employer"] and fields["pan"] == plain["pan"]
+    assert fields["declared_income"] == plain["declared_income"] and fields["net_pay"] == 50000.0

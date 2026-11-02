@@ -1,0 +1,42 @@
+# Local run of the whole thing: API + mock bureau + Postgres, documents from ./local_data (a copy of sample_data).
+#   cp .env.example .env   (set API_KEYS and CREDIT_BUREAU_API_KEY)
+#   cp -r sample_data local_data
+#   docker compose up --build      then open http://localhost:8000/screen
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot
+      POSTGRES_DB: copilot
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot"]
+      interval: 5s
+      retries: 10
+
+  bureau:
+    build: .
+    command: ["uvicorn", "copilot.bureau_mock:app", "--host", "0.0.0.0", "--port", "9000"]
+    env_file: .env
+    environment:
+      STORAGE_BACKEND: local
+      LOCAL_DATA_DIR: /data
+    volumes: ["./local_data:/data:ro"]
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      STORAGE_BACKEND: local
+      LOCAL_DATA_DIR: /data
+      CREDIT_BUREAU_URL: http://bureau:9000/credit-report
+      DATABASE_URL: postgresql://copilot:copilot@db:5432/copilot
+    volumes: ["./local_data:/data"]
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+      bureau: {condition: service_started}
+
+volumes:
+  pgdata:

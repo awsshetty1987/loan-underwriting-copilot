@@ -1,0 +1,17 @@
+{
+  "min_credit_score": 650,
+  "max_debt_to_income_ratio": 0.4,
+  "max_existing_loans": 2,
+  "min_income_consistency_ratio": 0.8,
+  "auto_reject_if_default_exists": true,
+  "risk_tiers": {
+    "LOW": "no flags, no broken rules, credit_score >= 700 and existing_loans <= 1",
+    "MEDIUM": "passes all hard rules but has a flag, or is just outside the LOW limits",
+    "HIGH": "any default, credit_score < 650, more than 2 loans, FOIR above the limit, salary credited below 60% of net pay, or an edited / reused document"
+  },
+  "min_job_tenure_months": 12,
+  "min_net_monthly_income": 25000,
+  "major_income_mismatch_ratio": 0.6,
+  "low_risk_min_credit_score": 700,
+  "low_risk_max_existing_loans": 1
+}

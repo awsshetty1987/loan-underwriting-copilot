@@ -1,0 +1,22 @@
+SALARY SLIP (Synthetic Test Data, Not Real)
+
+Employee Name: Suresh Nair
+Employer: Cognizant
+Designation: Senior Associate
+PAN: WJMVU7118O
+Date of Joining: 2024-01-26
+Pay Date: 2026-06-26
+
+EARNINGS
+Basic: 45000
+HRA: 22500
+Special Allowance: 22500
+Gross Pay: 90000
+
+DEDUCTIONS
+Provident Fund: 5400
+Professional Tax: 200
+Income Tax (TDS): 10600
+Total Deductions: 16200
+
+Net Pay: 73800
