@@ -41,7 +41,7 @@ terraform destroy              # type yes. Removes everything except the S3 buck
 
 ## Test data (`sample_data/`)
 
-29 synthetic applicants, APP_1000 to APP_1028. Four are planted fraud cases: APP_1025 (payslip arithmetic), APP_1026 (statement balances), APP_1027 (statement copied from another applicant), APP_1028 (loan too large for income).
+30 synthetic applicants: APP_1000 to APP_1028, plus APP_2028 (added later to show how a new customer is added). Four are planted fraud cases: APP_1025 (payslip arithmetic), APP_1026 (statement balances), APP_1027 (statement copied from another applicant), APP_1028 (loan too large for income).
 
 | Folder | Comes from | In PROD |
 |---|---|---|
