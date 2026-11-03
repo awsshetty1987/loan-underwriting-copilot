@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Suresh Gupta
-PAN: YUKDJ8123F
-Aadhaar (masked): XXXX-XXXX-9821
-Address: 176 MG Road, Bengaluru, Karnataka

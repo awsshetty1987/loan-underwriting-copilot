@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Divya Rao
-PAN: GMBFM1035M
-Aadhaar (masked): XXXX-XXXX-7906
-Address: 65 MG Road, Bengaluru, Karnataka

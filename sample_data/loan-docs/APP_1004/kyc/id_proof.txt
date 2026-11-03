@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Suresh Iyer
-PAN: MCRJU6925S
-Aadhaar (masked): XXXX-XXXX-9900
-Address: 181 MG Road, Bengaluru, Karnataka

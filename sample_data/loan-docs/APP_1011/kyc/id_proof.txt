@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Karthik Iyer
-PAN: MMTOQ5119R
-Aadhaar (masked): XXXX-XXXX-5349
-Address: 10 MG Road, Bengaluru, Karnataka

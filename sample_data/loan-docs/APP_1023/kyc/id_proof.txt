@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Priya Rao
-PAN: ZRDBU9856A
-Aadhaar (masked): XXXX-XXXX-8022
-Address: 35 MG Road, Bengaluru, Karnataka

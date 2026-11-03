@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Neha Kulkarni
-PAN: NEHPK2687T
-Aadhaar (masked): XXXX-XXXX-2687
-Address: 12 Test Street, Pune, Maharashtra

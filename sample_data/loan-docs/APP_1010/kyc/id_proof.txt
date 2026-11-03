@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Karthik Menon
-PAN: HEQPC1771D
-Aadhaar (masked): XXXX-XXXX-6378
-Address: 72 MG Road, Bengaluru, Karnataka

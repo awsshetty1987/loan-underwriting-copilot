@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Sneha Iyer
-PAN: KASRH4608A
-Aadhaar (masked): XXXX-XXXX-6198
-Address: 194 MG Road, Bengaluru, Karnataka

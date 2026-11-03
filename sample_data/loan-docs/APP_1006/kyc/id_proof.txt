@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Sneha Gupta
-PAN: WVUCT3803R
-Aadhaar (masked): XXXX-XXXX-8239
-Address: 142 MG Road, Bengaluru, Karnataka

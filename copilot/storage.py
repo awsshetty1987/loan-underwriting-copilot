@@ -23,18 +23,22 @@ def _local(key: str) -> Path:
     return path
 
 
-def get_text(key: str) -> str:
-    """The file's text. Raises FileNotFoundError when it doesn't exist."""
+def get_bytes(key: str) -> bytes:
+    """The file's content. Raises FileNotFoundError when it doesn't exist."""
     if settings().storage_backend == "local":
         path = _local(key)
         if not path.is_file():
             raise FileNotFoundError(key)
-        return path.read_text(encoding="utf-8")
+        return path.read_bytes()
     s3 = _client()
     try:
-        return s3.get_object(Bucket=settings().s3_bucket, Key=key)["Body"].read().decode("utf-8")
+        return s3.get_object(Bucket=settings().s3_bucket, Key=key)["Body"].read()
     except s3.exceptions.NoSuchKey:
         raise FileNotFoundError(key) from None
+
+
+def get_text(key: str) -> str:
+    return get_bytes(key).decode("utf-8")
 
 
 def put_text(key: str, text: str) -> None:

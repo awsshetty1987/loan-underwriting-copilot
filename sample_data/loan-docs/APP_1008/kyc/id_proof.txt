@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Rahul Menon
-PAN: MICGS6155G
-Aadhaar (masked): XXXX-XXXX-4878
-Address: 42 MG Road, Bengaluru, Karnataka

@@ -11,7 +11,7 @@ PLANTED = {"APP_1025": "salary slip doesn't add up", "APP_1026": "balance doesn'
 
 
 def all_flags(app: str) -> list[str]:
-    slip = t.parse_salary_certificate(t.get_document(app, "income", "salary_certificate.txt"))
+    slip = t.parse_salary_certificate(t.get_document(app, "income"))
     report = json.loads(storage.get_text(f"loan-docs/{app}/credit-bureau/report.json"))
     rules = t.get_policy_rules()
     afford = t.check_affordability(app, report, slip, rules)
@@ -70,8 +70,37 @@ def test_gpt_answer_with_wrong_shapes_is_ignored(monkeypatch):
     bad = json.dumps({"declared_income": {"x": 1}, "employer": {"name": "HDFC"}, "pan": ["ABCDE1234F"],
                       "earnings": "lots", "net_pay": "Rs.50,000"})
     monkeypatch.setattr(t, "call_llm", lambda *a, **k: bad)
-    text = t.get_document("APP_1001", "income", "salary_certificate.txt")
+    text = t.get_document("APP_1001", "income")
     plain = t.parse_salary_certificate(text)
     fields = t.extract_income_fields(text)
     assert fields["employer"] == plain["employer"] and fields["pan"] == plain["pan"]
     assert fields["declared_income"] == plain["declared_income"] and fields["net_pay"] == 50000.0
+
+
+def test_older_text_documents_still_work(tmp_path, monkeypatch):
+    """The notebooks' .txt / .csv documents give the same answers as the PDFs."""
+    folder = tmp_path / "loan-docs" / "APP_1001"
+    (folder / "income").mkdir(parents=True)
+    (folder / "bank-statements").mkdir()
+    (folder / "income" / "salary_certificate.txt").write_text(
+        "Employee Name: Priya Nair\nEmployer: Cognizant\nPAN: HQTAR4257W\nDate of Joining: 2023-11-26\n"
+        "Pay Date: 2026-06-26\nEARNINGS\nBasic: 45000\nHRA: 22500\nSpecial Allowance: 22500\nGross Pay: 90000\n"
+        "DEDUCTIONS\nProvident Fund: 5400\nProfessional Tax: 200\nIncome Tax (TDS): 10600\nTotal Deductions: 16200\n"
+        "Net Pay: 73800\n")
+    (folder / "bank-statements" / "statement_6m.csv").write_text(
+        "date,description,debit,credit,balance\n2026-01-01,OPENING BALANCE,,,88560.00\n"
+        "2026-01-27,SALARY CREDIT COGNIZANT,,49500.00,138060.00\n2026-01-27,RENT DEBIT,18000.00,,120060.00\n")
+    from_pdf = t.parse_salary_certificate(t.get_document("APP_1001", "income"))
+    pdf_rows = t.get_statement_rows("APP_1001")[:3]
+    monkeypatch.setenv("LOCAL_DATA_DIR", str(tmp_path))
+    assert t.parse_salary_certificate(t.get_document("APP_1001", "income")) == from_pdf
+    assert t.get_statement_rows("APP_1001") == pdf_rows
+
+
+def test_a_broken_pdf_is_reported(tmp_path, monkeypatch):
+    folder = tmp_path / "loan-docs" / "APP_1001" / "income"
+    folder.mkdir(parents=True)
+    (folder / "salary_slip.pdf").write_bytes(b"not a pdf")
+    monkeypatch.setenv("LOCAL_DATA_DIR", str(tmp_path))
+    with pytest.raises(ValueError, match="Could not read the PDF"):
+        t.get_document("APP_1001", "income")
