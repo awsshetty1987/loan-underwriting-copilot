@@ -1,0 +1,8 @@
+{
+  "applicant_id": "APP_1018",
+  "loan_amount": 100000,
+  "tenure_months": 48,
+  "interest_rate": 13.5,
+  "purpose": "Debt consolidation",
+  "application_date": "2026-06-26"
+}

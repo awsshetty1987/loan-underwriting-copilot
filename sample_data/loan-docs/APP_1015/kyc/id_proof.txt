@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Lakshmi Gupta
+PAN: HBHSC2403X
+Aadhaar (masked): XXXX-XXXX-9445
+Address: 170 MG Road, Bengaluru, Karnataka

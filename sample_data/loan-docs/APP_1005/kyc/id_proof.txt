@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Sneha Gupta
+PAN: CHDMI8428U
+Aadhaar (masked): XXXX-XXXX-4335
+Address: 176 MG Road, Bengaluru, Karnataka

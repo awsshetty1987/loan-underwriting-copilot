@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Vikram Nair
+PAN: HEXDV9935C
+Aadhaar (masked): XXXX-XXXX-8973
+Address: 40 MG Road, Bengaluru, Karnataka

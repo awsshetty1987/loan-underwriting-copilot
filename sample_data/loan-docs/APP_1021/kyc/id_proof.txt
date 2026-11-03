@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Karthik Rao
+PAN: XBVUU2612B
+Aadhaar (masked): XXXX-XXXX-7232
+Address: 123 MG Road, Bengaluru, Karnataka

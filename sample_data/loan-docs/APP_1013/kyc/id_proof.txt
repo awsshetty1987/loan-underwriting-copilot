@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Pooja Gupta
+PAN: QYFQD5889U
+Aadhaar (masked): XXXX-XXXX-7691
+Address: 84 MG Road, Bengaluru, Karnataka

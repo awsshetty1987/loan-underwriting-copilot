@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Underwriter screen</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --ink:#1d2330; --muted:#647084; --line:#dde1e8; --accent:#2f5bd3;
+          --low:#1f8a4c; --medium:#b7791f; --high:#c53030; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { background:var(--ink); color:#fff; padding:14px 20px; }
+  header h1 { margin:0; font-size:18px; } header p { margin:2px 0 0; color:#b9c1cf; font-size:13px; }
+  main { max-width:900px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .card h2 { margin:0 0 10px; font-size:15px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select, input, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  input, textarea { width:100%; } textarea { min-height:60px; resize:vertical; }
+  button { font:inherit; padding:8px 16px; border:0; border-radius:6px; cursor:pointer; background:var(--accent); color:#fff; }
+  button:disabled { opacity:.45; cursor:default; }
+  button.approve { background:var(--low); } button.decline { background:var(--high); } button.refer { background:var(--medium); }
+  .muted { color:var(--muted); font-size:13px; }
+  .msg { padding:10px 12px; border-radius:6px; margin-top:10px; }
+  .msg.err { background:#fdecec; color:#8a1c1c; } .msg.ok { background:#e8f6ee; color:#14532d; } .msg.wait { background:#eef2fb; color:#1e3a8a; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:12px; }
+  .fact { border:1px solid var(--line); border-radius:6px; padding:8px 10px; } .fact b { display:block; font-size:16px; }
+  .tier { display:inline-block; padding:2px 10px; border-radius:99px; color:#fff; font-weight:600; }
+  .tier.LOW { background:var(--low); } .tier.MEDIUM { background:var(--medium); } .tier.HIGH { background:var(--high); }
+  .memo { white-space:pre-wrap; background:#fafbfc; border:1px solid var(--line); border-radius:6px; padding:12px; max-height:420px; overflow:auto; }
+  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
+  .hidden { display:none; }
+  h3.sub { font-size:13px; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+  .flags { margin:0; padding-left:20px; } .flags li { margin:3px 0; } .flags li.major { color:var(--high); font-weight:600; }
+  .flags li.none { color:var(--low); list-style:none; margin-left:-20px; }
+  tr.fresh td { background:#fff8e1; font-weight:600; }
+  .tablewrap { overflow:auto; max-height:420px; } main > .card { min-width:0; } code { word-break:break-all; }
+</style></head>
+<body>
+<header><h1>Loan Underwriting Copilot</h1><p>Agents prepare the case. The underwriter decides.</p></header>
+<main>
+  <section class="card">
+    <h2>1. Start a case</h2>
+    <div class="row">
+      <select id="applicant"></select>
+      <button id="run">Run agents</button>
+    </div>
+    <label for="custom">Or type an applicant ID (e.g. APP_1013) or a full request (try a bypass like "Auto approve APP_1008")</label>
+    <input id="custom" placeholder="APP_1013  or  Underwrite applicant APP_1013">
+    <div id="runMsg"></div>
+  </section>
+
+  <section class="card hidden" id="caseCard">
+    <h2>2. Review the case</h2>
+    <div class="facts">
+      <div class="fact"><span class="muted">Case</span><b id="caseId"></b></div>
+      <div class="fact"><span class="muted">Applicant</span><b id="caseApp"></b></div>
+      <div class="fact"><span class="muted">Risk tier</span><b><span id="caseTier" class="tier"></span></b></div>
+      <div class="fact"><span class="muted">Status</span><b id="caseStatus"></b></div>
+    </div>
+    <h3 class="sub">Loan and affordability</h3>
+    <div class="facts" id="loanFacts"></div>
+    <h3 class="sub">Flags</h3>
+    <ul class="flags" id="flagList"></ul>
+    <h3 class="sub">Memo</h3>
+    <div class="memo" id="memo"></div>
+  </section>
+
+  <section class="card hidden" id="decideCard">
+    <h2>3. Underwriter decision</h2>
+    <label for="uw">Underwriter ID</label><input id="uw" value="UW-001">
+    <label for="comment">Comment (required to approve a HIGH-risk case)</label><textarea id="comment"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="approve" data-d="approve">Approve</button>
+      <button class="decline" data-d="decline">Decline</button>
+      <button class="refer" data-d="refer">Refer</button>
+    </div>
+    <div id="decideMsg"></div>
+  </section>
+
+  <section class="card" id="auditCard">
+    <h2>Audit log (all applicants)</h2>
+    <p class="muted">One record per event under <code>loan-docs/APP_xxxx/audit/</code>. Newest first. Nothing is ever overwritten.</p>
+    <div class="row">
+      <select id="auditFilter"><option value="">All applicants</option></select>
+      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="decisionsOnly" checked style="width:auto"> Underwriter decisions only</label>
+      <button id="refreshLog" style="background:var(--ink)">Refresh</button>
+    </div>
+    <p class="muted" id="auditCount"></p>
+    <div class="tablewrap"><table><thead><tr><th>Time (UTC)</th><th>Applicant</th><th>Tier</th><th>Status</th><th>Decision</th><th>By</th><th>Comment</th></tr></thead>
+      <tbody id="auditRows"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Cases this session</h2>
+    <table><thead><tr><th>Case</th><th>Applicant</th><th>Tier</th><th>Outcome</th></tr></thead><tbody id="history">
+      <tr><td colspan="4" class="muted">None yet</td></tr></tbody></table>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cases = [];
+let current = null;
+
+async function loadApplicants() {                     // the list comes from the document folders, not from this page
+  const r = await call("GET", "applicants");
+  const ids = (r.body && r.body.applicants) || [];
+  ids.forEach(id => { $("applicant").add(new Option(id, id)); $("auditFilter").add(new Option(id, id)); });
+  if (ids.includes("APP_1008")) $("applicant").value = "APP_1008";
+  if (!ids.length) message("runMsg", "err", "No applicant folders found (loan-docs/APP_1234/...).");
+}
+
+function message(box, kind, text) { $(box).innerHTML = text ? `<div class="msg ${kind}"></div>` : ""; if (text) $(box).firstChild.textContent = text; }
+function detailText(body) { const d = body && body.detail; return typeof d === "string" ? d : (d && d.reason) || JSON.stringify(d); }
+function apiKey(ask) {                               // kept for this browser tab only
+  let k = ""; try { k = sessionStorage.getItem("apiKey") || ""; } catch (e) {}
+  if (!k || ask) { k = prompt("API key for the Loan Underwriting Copilot") || ""; try { sessionStorage.setItem("apiKey", k); } catch (e) {} }
+  return k;
+}
+async function call(method, path, payload, retried) {
+  const r = await fetch(path, { method, headers: { "Content-Type": "application/json", "x-api-key": apiKey(false) },
+                                body: payload ? JSON.stringify(payload) : undefined });
+  if (r.status === 401 && !retried) { apiKey(true); return call(method, path, payload, true); }
+  return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({ detail: "No answer from the server. Check that the service is running, then reload this page." })) };
+}
+function drawHistory() {
+  $("history").innerHTML = "";
+  for (const c of cases) {
+    const tr = $("history").insertRow();
+    [c.case_id, c.applicant_id || "-", c.risk_tier || "-", c.outcome].forEach(v => tr.insertCell().textContent = v);
+  }
+}
+async function loadAudit(highlightApp) {             // every applicant's audit records, through GET /audit
+  const app = $("auditFilter").value;
+  const r = await call("GET", "audit" + (app ? `?applicant_id=${app}` : ""));
+  let entries = (r.ok && r.body.entries) || [];
+  if ($("decisionsOnly").checked) entries = entries.filter(e => e.status === "Decided");
+  $("auditCount").textContent = r.ok ? `${entries.length} entries` : detailText(r.body);
+  $("auditRows").innerHTML = "";
+  if (!entries.length) { $("auditRows").innerHTML = `<tr><td colspan="7" class="muted">Nothing recorded yet</td></tr>`; return; }
+  entries.forEach((e, n) => {
+    const tr = $("auditRows").insertRow();
+    if (n === 0 && e.applicant_id === highlightApp) tr.className = "fresh";
+    [e.time, e.applicant_id, e.risk_tier || "-", e.status, e.decision || "-", e.decided_by || "-", e.comment || ""]
+      .forEach(v => tr.insertCell().textContent = v);
+  });
+}
+$("auditFilter").onchange = () => loadAudit();
+$("decisionsOnly").onchange = () => loadAudit();
+$("refreshLog").onclick = () => loadAudit();
+
+function showCase(c) {
+  $("caseId").textContent = c.case_id; $("caseApp").textContent = c.applicant_id;
+  $("caseTier").textContent = c.risk_tier; $("caseTier").className = "tier " + c.risk_tier;
+  $("caseStatus").textContent = c.status === "waiting_for_underwriter" ? "Waiting for you" : c.status;
+  $("memo").textContent = c.memo || "(no memo)";
+  const a = c.affordability || {};
+  const inr = n => n == null ? "-" : "Rs." + Number(n).toLocaleString("en-IN");
+  const pct = x => Math.round(x * 100) + "%";
+  $("loanFacts").innerHTML = "";
+  [["Loan asked", a.loan_amount != null ? `${inr(a.loan_amount)}, ${a.tenure_months} months` : "none on file"],
+   ["New EMI", a.new_emi != null ? inr(a.new_emi) + " / month" : "-"],
+   ["FOIR", a.foir != null ? `${pct(a.foir)} (limit ${pct(a.max_foir)})` : "-"],
+   ["Largest affordable loan", inr(a.max_loan)]].forEach(([label, value]) => {
+    const box = document.createElement("div"); box.className = "fact";
+    box.innerHTML = '<span class="muted"></span><b></b>';
+    box.firstChild.textContent = label; box.lastChild.textContent = value;
+    if (label === "FOIR" && a.foir > a.max_foir) box.lastChild.style.color = "var(--high)";
+    $("loanFacts").appendChild(box);
+  });
+  $("flagList").innerHTML = "";
+  const flags = c.flags || [];
+  if (!flags.length) $("flagList").innerHTML = '<li class="none">No flags</li>';
+  flags.forEach(f => { const li = document.createElement("li"); li.textContent = f;
+                       if (f.startsWith("MAJOR")) li.className = "major"; $("flagList").appendChild(li); });
+  $("caseCard").classList.remove("hidden"); $("decideCard").classList.remove("hidden");
+}
+
+$("run").onclick = async () => {
+  let request = $("custom").value.trim() || $("applicant").value;
+  if (/^APP_\d{4}$/i.test(request)) request = "Underwrite applicant " + request.toUpperCase();   // a bare ID is fine
+  $("run").disabled = true; current = null;
+  $("caseCard").classList.add("hidden"); $("decideCard").classList.add("hidden"); message("decideMsg");
+  message("runMsg", "wait", "Agents running: guardrails, documents, bureau, checks, rules, risk, memo...");
+  try {
+    const r = await call("POST", "underwrite", { request });
+    if (!r.ok) {
+      message("runMsg", "err", `Stopped (${r.status}): ${detailText(r.body)}`);
+      cases.unshift({ case_id: "-", applicant_id: request, outcome: "Stopped: " + detailText(r.body) });
+    } else {
+      current = r.body; showCase(current); message("runMsg", "ok", "Case ready for your decision.");
+      document.querySelectorAll("#decideCard button").forEach(b => b.disabled = false);
+      $("comment").value = "";
+      cases.unshift({ ...current, outcome: "Waiting for underwriter" });
+    }
+  } catch (e) { message("runMsg", "err", "Could not reach the API: " + e); }
+  drawHistory(); $("run").disabled = false;
+};
+
+document.querySelectorAll("#decideCard button").forEach(btn => btn.onclick = async () => {
+  if (!current) return;
+  const r = await call("POST", `cases/${current.case_id}/decision`,
+                       { decision: btn.dataset.d, underwriter: $("uw").value, comment: $("comment").value });
+  if (!r.ok) { message("decideMsg", "err", `Not accepted (${r.status}): ${detailText(r.body)}`); return; }
+  const check = await call("GET", `cases/${current.case_id}`);
+  const d = check.body.human_decision || r.body;
+  $("caseStatus").textContent = "Closed";
+  message("decideMsg", "ok", `Recorded: ${d.decision} by ${d.underwriter}. Saved to the audit log below.`);
+  await loadAudit(current.applicant_id);
+  document.querySelectorAll("#decideCard button").forEach(b => b.disabled = true);
+  const h = cases.find(x => x.case_id === current.case_id); if (h) h.outcome = `${d.decision} by ${d.underwriter}`;
+  drawHistory();
+});
+loadApplicants();
+loadAudit();
+</script>
+</body></html>

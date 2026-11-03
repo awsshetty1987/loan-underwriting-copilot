@@ -1,0 +1,8 @@
+{
+  "applicant_id": "APP_1016",
+  "loan_amount": 400000,
+  "tenure_months": 24,
+  "interest_rate": 11.0,
+  "purpose": "Education",
+  "application_date": "2026-06-26"
+}

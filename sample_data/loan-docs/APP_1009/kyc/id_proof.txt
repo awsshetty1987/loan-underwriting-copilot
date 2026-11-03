@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Arjun Rao
+PAN: EIEHX9830I
+Aadhaar (masked): XXXX-XXXX-2771
+Address: 98 MG Road, Bengaluru, Karnataka

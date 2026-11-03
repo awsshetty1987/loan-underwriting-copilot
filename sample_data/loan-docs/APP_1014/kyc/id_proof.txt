@@ -1,0 +1,6 @@
+KYC DETAILS (Synthetic Test Data — Not Real)
+
+Name: Rahul Reddy
+PAN: RYQAT6310P
+Aadhaar (masked): XXXX-XXXX-1006
+Address: 78 MG Road, Bengaluru, Karnataka

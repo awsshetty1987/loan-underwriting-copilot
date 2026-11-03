@@ -1,0 +1,18 @@
+[project]
+name = "loan-underwriting-copilot"
+version = "0.1.0"
+description = "Agents prepare a loan case; a human underwriter decides."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]
