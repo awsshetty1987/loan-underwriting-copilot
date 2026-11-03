@@ -6,7 +6,8 @@ from copilot.api import app
 
 KEY = {"x-api-key": "test-api-key"}
 EXPECTED_TIER = {"APP_1008": "LOW", "APP_1001": "MEDIUM", "APP_1013": "MEDIUM", "APP_1009": "HIGH",
-                 "APP_1019": "HIGH", "APP_1025": "HIGH", "APP_1026": "HIGH", "APP_1027": "HIGH", "APP_1028": "HIGH"}
+                 "APP_1019": "HIGH", "APP_1025": "HIGH", "APP_1026": "HIGH", "APP_1027": "HIGH", "APP_1028": "HIGH",
+                 "APP_2028": "LOW"}
 
 
 @pytest.fixture(scope="module")
@@ -27,7 +28,7 @@ def test_health_and_screen_are_public(client):
 def test_api_key_required(client):
     assert client.get("/applicants").status_code == 401
     assert client.get("/applicants", headers={"x-api-key": "wrong"}).status_code == 401
-    assert len(client.get("/applicants", headers=KEY).json()["applicants"]) == 29
+    assert len(client.get("/applicants", headers=KEY).json()["applicants"]) == 30
 
 
 @pytest.mark.parametrize("app_id,tier", EXPECTED_TIER.items())

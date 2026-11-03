@@ -21,9 +21,9 @@ def all_flags(app: str) -> list[str]:
             + t.check_file_reuse(app) + afford["flags"])
 
 
-def test_29_applicants():
+def test_all_applicants_listed():
     apps = t.list_applicants()
-    assert len(apps) == 29 and apps[0] == "APP_1000" and apps[-1] == "APP_1028"
+    assert len(apps) == 30 and apps[0] == "APP_1000" and apps[-1] == "APP_2028"
 
 
 @pytest.mark.parametrize("app,words", PLANTED.items())
