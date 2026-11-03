@@ -1,118 +1,248 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Underwriter screen</title>
+<title>Loan Underwriting Copilot</title>
 <style>
-  :root { --bg:#f5f6f8; --card:#fff; --ink:#1d2330; --muted:#647084; --line:#dde1e8; --accent:#2f5bd3;
-          --low:#1f8a4c; --medium:#b7791f; --high:#c53030; }
+  :root {
+    --bg:#f3f5f9; --card:#ffffff; --ink:#152033; --muted:#66748a; --line:#e3e8ef; --soft:#f7f9fc;
+    --brand:#2448c7; --brand-soft:#e9eefc;
+    --low:#15803d; --low-soft:#e7f6ec; --medium:#b45309; --medium-soft:#fdf3e2; --high:#c0262d; --high-soft:#fdeaea;
+    --grey:#5b6576; --grey-soft:#eef1f5; --shadow:0 1px 2px rgba(16,24,40,.05), 0 4px 16px rgba(16,24,40,.06);
+  }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { background:var(--ink); color:#fff; padding:14px 20px; }
-  header h1 { margin:0; font-size:18px; } header p { margin:2px 0 0; color:#b9c1cf; font-size:13px; }
-  main { max-width:900px; margin:0 auto; padding:16px; display:grid; gap:14px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
-  .card h2 { margin:0 0 10px; font-size:15px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
-  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  select, input, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
-  input, textarea { width:100%; } textarea { min-height:60px; resize:vertical; }
-  button { font:inherit; padding:8px 16px; border:0; border-radius:6px; cursor:pointer; background:var(--accent); color:#fff; }
-  button:disabled { opacity:.45; cursor:default; }
-  button.approve { background:var(--low); } button.decline { background:var(--high); } button.refer { background:var(--medium); }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+
+  /* top bar and tabs */
+  .top { background:#0f1b33; color:#fff; }
+  .top .bar { max-width:1180px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:14px; }
+  .logo { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#4c7dff,#2448c7); display:grid; place-items:center; font-weight:700; }
+  .top h1 { margin:0; font-size:17px; } .top p { margin:0; font-size:12.5px; color:#a9b6cf; }
+  .top .spacer { flex:1; }
+  .ghost { background:transparent; border:1px solid #3b4a68; color:#d6deec; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:13px; }
+  .ghost:hover { background:#1b2a4a; }
+  .tabs { max-width:1180px; margin:0 auto; padding:0 20px; display:flex; gap:4px; }
+  .tab { background:none; border:0; color:#a9b6cf; padding:10px 14px; cursor:pointer; border-bottom:3px solid transparent; font-weight:600; }
+  .tab.on { color:#fff; border-bottom-color:#5b8cff; }
+
+  main { max-width:1180px; margin:0 auto; padding:20px; }
+  .view.hidden, .hidden { display:none !important; }
+  .grid { display:grid; grid-template-columns:340px minmax(0,1fr); gap:18px; align-items:start; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); min-width:0; }
+  .card + .card { margin-top:18px; }
+  .stack { display:grid; gap:18px; } .stack > .card { margin-top:0; }
+  .card h2 { margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .muted { color:var(--muted); font-size:13px; }
-  .msg { padding:10px 12px; border-radius:6px; margin-top:10px; }
-  .msg.err { background:#fdecec; color:#8a1c1c; } .msg.ok { background:#e8f6ee; color:#14532d; } .msg.wait { background:#eef2fb; color:#1e3a8a; }
-  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:12px; }
-  .fact { border:1px solid var(--line); border-radius:6px; padding:8px 10px; } .fact b { display:block; font-size:16px; }
-  .tier { display:inline-block; padding:2px 10px; border-radius:99px; color:#fff; font-weight:600; }
-  .tier.LOW { background:var(--low); } .tier.MEDIUM { background:var(--medium); } .tier.HIGH { background:var(--high); }
-  .memo { white-space:pre-wrap; background:#fafbfc; border:1px solid var(--line); border-radius:6px; padding:12px; max-height:420px; overflow:auto; }
-  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 4px; }
-  table { width:100%; border-collapse:collapse; font-size:14px; } td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
-  .hidden { display:none; }
-  h3.sub { font-size:13px; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
-  .flags { margin:0; padding-left:20px; } .flags li { margin:3px 0; } .flags li.major { color:var(--high); font-weight:600; }
-  .flags li.none { color:var(--low); list-style:none; margin-left:-20px; }
-  tr.fresh td { background:#fff8e1; font-weight:600; }
-  .tablewrap { overflow:auto; max-height:420px; } main > .card { min-width:0; } code { word-break:break-all; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 5px; font-weight:600; }
+  select, input, textarea { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:#fff; }
+  select:focus, input:focus, textarea:focus { outline:2px solid var(--brand-soft); border-color:var(--brand); }
+  textarea { min-height:74px; resize:vertical; }
+  .btn { border:0; border-radius:9px; padding:10px 16px; cursor:pointer; font-weight:600; background:var(--brand); color:#fff; }
+  .btn:hover { filter:brightness(1.07); } .btn:disabled { opacity:.45; cursor:default; filter:none; }
+  .btn.block { width:100%; margin-top:12px; padding:12px; }
+  .btn.approve { background:var(--low); } .btn.decline { background:var(--high); } .btn.refer { background:var(--medium); }
+  details.adv { margin-top:12px; } details.adv summary { cursor:pointer; color:var(--brand); font-size:13px; }
+
+  /* agent progress */
+  .steps { list-style:none; margin:14px 0 0; padding:0; }
+  .steps li { display:flex; align-items:center; gap:10px; padding:5px 0; color:var(--muted); font-size:14px; }
+  .dot { width:20px; height:20px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; font-size:11px; flex:none; }
+  .steps li.run { color:var(--ink); font-weight:600; } .steps li.run .dot { border-color:var(--brand); border-top-color:transparent; animation:spin .8s linear infinite; }
+  .steps li.done { color:var(--ink); } .steps li.done .dot { background:var(--low); border-color:var(--low); color:#fff; }
+  .steps li.stop { color:var(--high); font-weight:600; } .steps li.stop .dot { background:var(--high); border-color:var(--high); color:#fff; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .msg { padding:11px 13px; border-radius:9px; margin-top:12px; font-size:14px; }
+  .msg.err { background:var(--high-soft); color:#8a1c1c; } .msg.ok { background:var(--low-soft); color:#14532d; } .msg.wait { background:var(--brand-soft); color:#1e3a8a; }
+
+  /* session list */
+  .session { list-style:none; margin:0; padding:0; }
+  .session li { display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .session li:last-child { border-bottom:0; }
+
+  /* case view */
+  .empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty .big { font-size:42px; margin-bottom:6px; }
+  .casehead { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .casehead .who { flex:1; min-width:200px; } .casehead .who b { font-size:20px; display:block; }
+  .tier { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:99px; font-weight:700; letter-spacing:.03em; }
+  .tier.LOW { background:var(--low-soft); color:var(--low); } .tier.MEDIUM { background:var(--medium-soft); color:var(--medium); }
+  .tier.HIGH { background:var(--high-soft); color:var(--high); } .tier.none { background:var(--grey-soft); color:var(--grey); }
+  .pill { display:inline-block; padding:3px 10px; border-radius:99px; font-size:12.5px; font-weight:600; background:var(--grey-soft); color:var(--grey); }
+  .pill.wait { background:var(--brand-soft); color:var(--brand); }
+  .pill.approve { background:var(--low-soft); color:var(--low); } .pill.decline { background:var(--high-soft); color:var(--high); }
+  .pill.refer { background:var(--medium-soft); color:var(--medium); } .pill.stopped { background:var(--grey-soft); color:var(--grey); }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin:16px 0 4px; }
+  .kpi { background:var(--soft); border:1px solid var(--line); border-radius:11px; padding:11px 13px; }
+  .kpi span { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; } .kpi b { display:block; font-size:18px; margin-top:2px; }
+  .kpi.bad b { color:var(--high); }
+  .meter { height:6px; background:var(--line); border-radius:9px; margin-top:7px; overflow:hidden; } .meter i { display:block; height:100%; border-radius:9px; }
+  h3.sub { font-size:12.5px; color:var(--muted); margin:20px 0 8px; text-transform:uppercase; letter-spacing:.06em; }
+  .reasons { list-style:none; margin:0; padding:0; display:grid; gap:7px; }
+  .reasons li { padding:9px 12px; border-radius:9px; border-left:4px solid; font-size:14px; }
+  .reasons li.rule { background:var(--high-soft); border-color:var(--high); }
+  .reasons li.major { background:var(--high-soft); border-color:var(--high); }
+  .reasons li.minor { background:var(--medium-soft); border-color:var(--medium); }
+  .reasons li.ok { background:var(--low-soft); border-color:var(--low); }
+  .reasons li small { display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; opacity:.75; }
+  .memo { white-space:pre-wrap; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:14px; max-height:380px; overflow:auto; font-size:14px; }
+  details.memobox summary { cursor:pointer; font-weight:600; margin:18px 0 8px; }
+  .decide { display:grid; grid-template-columns:1fr 1fr; gap:12px; } @media (max-width:640px) { .decide { grid-template-columns:1fr; } }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; } .actions .btn { flex:1; min-width:110px; }
+  .hint { font-size:12.5px; color:var(--high); margin-top:6px; }
+
+  /* audit */
+  .filters { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:12px; }
+  .filters > div { min-width:180px; } .filters label { margin-top:0; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); background:#fff; border-radius:99px; padding:6px 12px; cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); }
+  .chip.on { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .tablewrap { overflow:auto; border:1px solid var(--line); border-radius:11px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { background:var(--soft); color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:10px 12px; position:sticky; top:0; }
+  td { padding:11px 12px; border-top:1px solid var(--line); vertical-align:top; }
+  tbody tr { cursor:pointer; } tbody tr:hover td { background:#f5f8ff; } tr.fresh td { background:#fffbea; }
+  td.cmt { color:var(--muted); max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .arrow { color:var(--brand); font-weight:700; }
+
+  /* detail drawer */
+  .shade { position:fixed; inset:0; background:rgba(15,27,51,.45); z-index:10; }
+  .drawer { position:fixed; top:0; right:0; bottom:0; width:min(620px, 100%); background:#fff; z-index:11; overflow:auto;
+            box-shadow:-10px 0 30px rgba(0,0,0,.15); animation:slide .18s ease-out; }
+  @keyframes slide { from { transform:translateX(30px); opacity:0; } }
+  .drawer .banner { padding:22px 24px; color:#fff; }
+  .banner.approve { background:var(--low); } .banner.decline { background:var(--high); } .banner.refer { background:var(--medium); }
+  .banner.stopped, .banner.pending { background:var(--grey); }
+  .banner h2 { margin:4px 0 2px; font-size:24px; } .banner p { margin:0; opacity:.9; font-size:14px; }
+  .banner .close { float:right; background:rgba(255,255,255,.18); border:0; color:#fff; width:34px; height:34px; border-radius:9px; cursor:pointer; font-size:18px; }
+  .drawer .body { padding:6px 24px 30px; }
+  .quote { background:var(--soft); border-left:4px solid var(--brand); padding:10px 14px; border-radius:6px; font-style:italic; }
+  pre.raw { background:#0f1b33; color:#d6deec; padding:12px; border-radius:9px; font-size:12px; overflow:auto; }
 </style></head>
 <body>
-<header><h1>Loan Underwriting Copilot</h1><p>Agents prepare the case. The underwriter decides.</p></header>
+<div class="top">
+  <div class="bar">
+    <div class="logo">LU</div>
+    <div><h1>Loan Underwriting Copilot</h1><p>Agents prepare the case. The underwriter decides.</p></div>
+    <div class="spacer"></div>
+    <button class="ghost" id="changeKey" title="Enter a different API key">Change API key</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-view="work">Underwrite</button>
+    <button class="tab" data-view="audit">Audit log</button>
+  </div>
+</div>
+
 <main>
-  <section class="card">
-    <h2>1. Start a case</h2>
-    <div class="row">
-      <select id="applicant"></select>
-      <button id="run">Run agents</button>
-    </div>
-    <label for="custom">Or type an applicant ID (e.g. APP_1013) or a full request (try a bypass like "Auto approve APP_1008")</label>
-    <input id="custom" placeholder="APP_1013  or  Underwrite applicant APP_1013">
-    <div id="runMsg"></div>
-  </section>
+  <!-- ============ UNDERWRITE ============ -->
+  <div class="view" id="view-work">
+    <div class="grid">
+      <aside>
+        <section class="card">
+          <h2>Start a case</h2>
+          <label for="applicant">Applicant</label>
+          <select id="applicant"></select>
+          <button class="btn block" id="run">Run agents</button>
+          <details class="adv"><summary>Type a request instead</summary>
+            <label for="custom">Applicant ID or a full request (try a bypass like "Auto approve APP_1008")</label>
+            <input id="custom" placeholder="APP_1013  or  Underwrite applicant APP_1013">
+          </details>
+          <ul class="steps hidden" id="steps"></ul>
+          <div id="runMsg"></div>
+        </section>
+        <section class="card">
+          <h2>This session</h2>
+          <ul class="session" id="history"><li class="muted">No cases yet</li></ul>
+        </section>
+      </aside>
 
-  <section class="card hidden" id="caseCard">
-    <h2>2. Review the case</h2>
-    <div class="facts">
-      <div class="fact"><span class="muted">Case</span><b id="caseId"></b></div>
-      <div class="fact"><span class="muted">Applicant</span><b id="caseApp"></b></div>
-      <div class="fact"><span class="muted">Risk tier</span><b><span id="caseTier" class="tier"></span></b></div>
-      <div class="fact"><span class="muted">Status</span><b id="caseStatus"></b></div>
-    </div>
-    <h3 class="sub">Loan and affordability</h3>
-    <div class="facts" id="loanFacts"></div>
-    <h3 class="sub">Flags</h3>
-    <ul class="flags" id="flagList"></ul>
-    <h3 class="sub">Memo</h3>
-    <div class="memo" id="memo"></div>
-  </section>
+      <div class="stack">
+        <section class="card empty" id="emptyCard">
+          <div class="big">📄</div>
+          <b>Pick an applicant and run the agents</b>
+          <p>They read the payslip, bank statement and KYC, check identity, ask the credit bureau and core banking,
+             run the checks and write a memo. Then the decision is yours.</p>
+        </section>
 
-  <section class="card hidden" id="decideCard">
-    <h2>3. Underwriter decision</h2>
-    <label for="uw">Underwriter ID</label><input id="uw" value="UW-001">
-    <label for="comment">Comment (required to approve a HIGH-risk case)</label><textarea id="comment"></textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="approve" data-d="approve">Approve</button>
-      <button class="decline" data-d="decline">Decline</button>
-      <button class="refer" data-d="refer">Refer</button>
-    </div>
-    <div id="decideMsg"></div>
-  </section>
+        <section class="card hidden" id="caseCard">
+          <div class="casehead">
+            <div class="who"><span class="muted" id="caseApp"></span><b id="caseName"></b><span class="muted" id="caseEmployer"></span></div>
+            <span class="pill" id="caseStatus"></span>
+            <span class="tier" id="caseTier"></span>
+          </div>
+          <div class="kpis" id="kpis"></div>
+          <h3 class="sub">Why this tier</h3>
+          <ul class="reasons" id="reasons"></ul>
+          <details class="memobox" open><summary>Credit memo <span class="muted" id="memoBy"></span></summary>
+            <div class="memo" id="memo"></div></details>
+          <p class="muted" style="margin-top:10px">Case <code id="caseId"></code></p>
+        </section>
 
-  <section class="card" id="auditCard">
-    <h2>Audit log (all applicants)</h2>
-    <p class="muted">One record per event under <code>loan-docs/APP_xxxx/audit/</code>. Newest first. Nothing is ever overwritten.</p>
-    <div class="row">
-      <select id="auditFilter"><option value="">All applicants</option></select>
-      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="decisionsOnly" checked style="width:auto"> Underwriter decisions only</label>
-      <button id="refreshLog" style="background:var(--ink)">Refresh</button>
+        <section class="card hidden" id="decideCard">
+          <h2>Your decision</h2>
+          <div class="decide">
+            <div><label for="uw">Underwriter ID</label><input id="uw" value="UW-001"></div>
+            <div><label for="comment">Comment</label><textarea id="comment" placeholder="Why you decided this way"></textarea>
+              <div class="hint hidden" id="highHint">This is a HIGH-risk case: approving needs a comment.</div></div>
+          </div>
+          <div class="actions">
+            <button class="btn approve" data-d="approve">✓ Approve</button>
+            <button class="btn decline" data-d="decline">✕ Decline</button>
+            <button class="btn refer" data-d="refer">↗ Refer</button>
+          </div>
+          <div id="decideMsg"></div>
+        </section>
+      </div>
     </div>
-    <p class="muted" id="auditCount"></p>
-    <div class="tablewrap"><table><thead><tr><th>Time (UTC)</th><th>Applicant</th><th>Tier</th><th>Status</th><th>Decision</th><th>By</th><th>Comment</th></tr></thead>
-      <tbody id="auditRows"></tbody></table></div>
-  </section>
+  </div>
 
-  <section class="card">
-    <h2>Cases this session</h2>
-    <table><thead><tr><th>Case</th><th>Applicant</th><th>Tier</th><th>Outcome</th></tr></thead><tbody id="history">
-      <tr><td colspan="4" class="muted">None yet</td></tr></tbody></table>
-  </section>
+  <!-- ============ AUDIT LOG ============ -->
+  <div class="view hidden" id="view-audit">
+    <section class="card">
+      <h2>Audit log</h2>
+      <p class="muted" style="margin-top:-6px">Every event is its own record in S3 under <code>loan-docs/APP_xxxx/audit/</code>, never overwritten.
+        <b>Click a row</b> to see the full case: why it was approved, declined, referred or stopped.</p>
+      <div class="filters">
+        <div><label for="auditFilter">Applicant</label><select id="auditFilter"><option value="">All applicants</option></select></div>
+        <div style="flex:1"><label>Show</label>
+          <div class="chips" id="chips">
+            <button class="chip on" data-f="Decided">Decisions</button>
+            <button class="chip" data-f="Stopped">Stopped</button>
+            <button class="chip" data-f="Agents only (no sign-off)">Agents only</button>
+            <button class="chip" data-f="">Everything</button>
+          </div></div>
+        <button class="btn" id="refreshLog" style="background:var(--ink)">Refresh</button>
+      </div>
+      <p class="muted" id="auditCount"></p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Time (UTC)</th><th>Applicant</th><th>Tier</th><th>Outcome</th><th>By</th><th>Comment / reason</th><th></th></tr></thead>
+        <tbody id="auditRows"></tbody></table></div>
+    </section>
+  </div>
 </main>
+
+<div class="shade hidden" id="shade"></div>
+<aside class="drawer hidden" id="drawer" role="dialog" aria-label="Audit record details"></aside>
+
 <script>
 const $ = id => document.getElementById(id);
 const cases = [];
-let current = null;
+let current = null, auditEntries = [], auditStatus = "Decided";
+const STEPS = ["Guardrails: is this a real underwriting request?", "Documents: payslip, statement, KYC",
+               "Identity: KYC PAN = payslip PAN", "Credit bureau and core banking (by PAN)",
+               "Consistency and document checks", "Policy rules and affordability (FOIR)", "Risk tier and credit memo"];
+const LABEL = { approve: "Approved", decline: "Declined", refer: "Referred" };
+const writer = w => w === "GPT" ? "written by GPT" : w ? "written by plain code (no GPT)" : "";
 
-async function loadApplicants() {                     // the list comes from the document folders, not from this page
-  const r = await call("GET", "applicants");
-  const ids = (r.body && r.body.applicants) || [];
-  ids.forEach(id => { $("applicant").add(new Option(id, id)); $("auditFilter").add(new Option(id, id)); });
-  if (ids.includes("APP_1008")) $("applicant").value = "APP_1008";
-  if (!ids.length) message("runMsg", "err", "No applicant folders found (loan-docs/APP_1234/...).");
-}
-
-function message(box, kind, text) { $(box).innerHTML = text ? `<div class="msg ${kind}"></div>` : ""; if (text) $(box).firstChild.textContent = text; }
+// ---------- helpers ----------
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function message(box, kind, text) { $(box).innerHTML = ""; if (text) $(box).appendChild(el("div", "msg " + kind, text)); }
 function detailText(body) { const d = body && body.detail; return typeof d === "string" ? d : (d && d.reason) || JSON.stringify(d); }
+const inr = n => n == null ? "-" : "Rs. " + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+const pct = x => x == null ? "-" : Math.round(x * 100) + "%";
 function apiKey(ask) {                               // kept for this browser tab only
   let k = ""; try { k = sessionStorage.getItem("apiKey") || ""; } catch (e) {}
-  if (!k || ask) { k = prompt("API key for the Loan Underwriting Copilot") || ""; try { sessionStorage.setItem("apiKey", k); } catch (e) {} }
+  if (!k || ask) { k = prompt("API key for the Loan Underwriting Copilot (terraform output -raw api_key)") || ""; try { sessionStorage.setItem("apiKey", k); } catch (e) {} }
   return k;
 }
 async function call(method, path, payload, retried) {
@@ -121,95 +251,192 @@ async function call(method, path, payload, retried) {
   if (r.status === 401 && !retried) { apiKey(true); return call(method, path, payload, true); }
   return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({ detail: "No answer from the server. Check that the service is running, then reload this page." })) };
 }
+
+// ---------- tabs ----------
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("hidden", v.id !== "view-" + t.dataset.view));
+  if (t.dataset.view === "audit") loadAudit();
+});
+$("changeKey").onclick = () => { apiKey(true); loadApplicants(); };
+
+// ---------- applicants ----------
+async function loadApplicants() {                     // the list comes from the document folders, not from this page
+  const r = await call("GET", "applicants");
+  const ids = (r.body && r.body.applicants) || [];
+  $("applicant").innerHTML = ""; $("auditFilter").length = 1;
+  ids.forEach(id => { $("applicant").add(new Option(id, id)); $("auditFilter").add(new Option(id, id)); });
+  if (ids.includes("APP_1008")) $("applicant").value = "APP_1008";
+  if (!r.ok) message("runMsg", "err", detailText(r.body));
+  else if (!ids.length) message("runMsg", "err", "No applicant folders found (loan-docs/APP_1234/...).");
+}
+
+// ---------- agent progress (the API answers once, so steps advance on a timer and settle on the answer) ----------
+let stepTimer = null;
+function drawSteps(active, stoppedAt) {
+  $("steps").classList.remove("hidden"); $("steps").innerHTML = "";
+  STEPS.forEach((s, i) => {
+    const li = el("li", i < active ? "done" : i === active ? (stoppedAt ? "stop" : "run") : "");
+    li.appendChild(el("span", "dot", i < active ? "✓" : (i === active && stoppedAt ? "!" : "")));
+    li.appendChild(el("span", "", s)); $("steps").appendChild(li);
+  });
+}
+function startSteps() { let n = 0; drawSteps(0); stepTimer = setInterval(() => { if (n < STEPS.length - 1) drawSteps(++n); }, 700); }
+function endSteps(ok, status) {
+  clearInterval(stepTimer);
+  if (ok) return drawSteps(STEPS.length);
+  const at = { 400: 0, 404: 1, 422: 2 }[status]; drawSteps(at == null ? STEPS.length - 1 : at, true);
+}
+
+// ---------- case view ----------
+function kpi(label, value, bad, meter) {
+  const box = el("div", "kpi" + (bad ? " bad" : "")); box.appendChild(el("span", "", label)); box.appendChild(el("b", "", value));
+  if (meter) { const m = el("div", "meter"), i = el("i"); i.style.width = Math.min(100, meter.value * 100) + "%";
+               i.style.background = meter.color; m.appendChild(i); box.appendChild(m); }
+  return box;
+}
+function reasonsList(target, violations, flags) {
+  target.innerHTML = "";
+  (violations || []).filter(v => !v.startsWith("MAJOR")).forEach(v => { const li = el("li", "rule"); li.appendChild(el("small", "", "Hard rule failed")); li.appendChild(document.createTextNode(v)); target.appendChild(li); });
+  (flags || []).forEach(f => {
+    const major = f.startsWith("MAJOR"); const li = el("li", major ? "major" : "minor");
+    li.appendChild(el("small", "", major ? "Major flag" : "Flag")); const t = f.replace(/^MAJOR\s+/, ""); li.appendChild(document.createTextNode(t.charAt(0).toUpperCase() + t.slice(1)));
+    target.appendChild(li);
+  });
+  if (!target.children.length) { const li = el("li", "ok"); li.appendChild(el("small", "", "All clear")); li.appendChild(document.createTextNode("No hard-rule failures and no flags.")); target.appendChild(li); }
+}
+function kpiList(target, a, creditScore) {
+  a = a || {}; target.innerHTML = "";
+  if (creditScore != null) target.appendChild(kpi("Credit score", creditScore, creditScore < 650,
+                                                   { value: (creditScore - 300) / 600, color: creditScore >= 750 ? "var(--low)" : creditScore >= 650 ? "var(--medium)" : "var(--high)" }));
+  target.appendChild(kpi("Loan asked", a.loan_amount != null ? inr(a.loan_amount) : "none on file"));
+  if (a.tenure_months != null) target.appendChild(kpi("Tenure", a.tenure_months + " months"));
+  target.appendChild(kpi("New EMI", a.new_emi != null ? inr(a.new_emi) + "/mo" : "-"));
+  const over = a.foir != null && a.foir > a.max_foir;
+  target.appendChild(kpi("FOIR (limit " + pct(a.max_foir) + ")", pct(a.foir), over,
+                         a.foir != null ? { value: a.foir, color: over ? "var(--high)" : "var(--low)" } : null));
+  target.appendChild(kpi("Largest affordable loan", inr(a.max_loan), a.max_loan != null && a.loan_amount > a.max_loan));
+}
+function showCase(c) {
+  $("emptyCard").classList.add("hidden");
+  $("caseApp").textContent = c.applicant_id; $("caseName").textContent = c.name || c.applicant_id;
+  $("caseEmployer").textContent = c.employer || ""; $("caseId").textContent = c.case_id;
+  $("caseTier").textContent = (c.risk_tier || "-") + " RISK"; $("caseTier").className = "tier " + (c.risk_tier || "none");
+  $("caseStatus").textContent = "Waiting for you"; $("caseStatus").className = "pill wait";
+  kpiList($("kpis"), c.affordability, c.credit_score);
+  reasonsList($("reasons"), c.violations, c.flags);
+  $("memo").textContent = c.memo || "(no memo)";
+  $("memoBy").textContent = c.memo_written_by ? "· " + writer(c.memo_written_by) : "";
+  $("highHint").classList.toggle("hidden", c.risk_tier !== "HIGH");
+  $("caseCard").classList.remove("hidden"); $("decideCard").classList.remove("hidden");
+}
 function drawHistory() {
   $("history").innerHTML = "";
-  for (const c of cases) {
-    const tr = $("history").insertRow();
-    [c.case_id, c.applicant_id || "-", c.risk_tier || "-", c.outcome].forEach(v => tr.insertCell().textContent = v);
-  }
-}
-async function loadAudit(highlightApp) {             // every applicant's audit records, through GET /audit
-  const app = $("auditFilter").value;
-  const r = await call("GET", "audit" + (app ? `?applicant_id=${app}` : ""));
-  let entries = (r.ok && r.body.entries) || [];
-  if ($("decisionsOnly").checked) entries = entries.filter(e => e.status === "Decided");
-  $("auditCount").textContent = r.ok ? `${entries.length} entries` : detailText(r.body);
-  $("auditRows").innerHTML = "";
-  if (!entries.length) { $("auditRows").innerHTML = `<tr><td colspan="7" class="muted">Nothing recorded yet</td></tr>`; return; }
-  entries.forEach((e, n) => {
-    const tr = $("auditRows").insertRow();
-    if (n === 0 && e.applicant_id === highlightApp) tr.className = "fresh";
-    [e.time, e.applicant_id, e.risk_tier || "-", e.status, e.decision || "-", e.decided_by || "-", e.comment || ""]
-      .forEach(v => tr.insertCell().textContent = v);
-  });
-}
-$("auditFilter").onchange = () => loadAudit();
-$("decisionsOnly").onchange = () => loadAudit();
-$("refreshLog").onclick = () => loadAudit();
-
-function showCase(c) {
-  $("caseId").textContent = c.case_id; $("caseApp").textContent = c.applicant_id;
-  $("caseTier").textContent = c.risk_tier; $("caseTier").className = "tier " + c.risk_tier;
-  $("caseStatus").textContent = c.status === "waiting_for_underwriter" ? "Waiting for you" : c.status;
-  $("memo").textContent = c.memo || "(no memo)";
-  const a = c.affordability || {};
-  const inr = n => n == null ? "-" : "Rs." + Number(n).toLocaleString("en-IN");
-  const pct = x => Math.round(x * 100) + "%";
-  $("loanFacts").innerHTML = "";
-  [["Loan asked", a.loan_amount != null ? `${inr(a.loan_amount)}, ${a.tenure_months} months` : "none on file"],
-   ["New EMI", a.new_emi != null ? inr(a.new_emi) + " / month" : "-"],
-   ["FOIR", a.foir != null ? `${pct(a.foir)} (limit ${pct(a.max_foir)})` : "-"],
-   ["Largest affordable loan", inr(a.max_loan)]].forEach(([label, value]) => {
-    const box = document.createElement("div"); box.className = "fact";
-    box.innerHTML = '<span class="muted"></span><b></b>';
-    box.firstChild.textContent = label; box.lastChild.textContent = value;
-    if (label === "FOIR" && a.foir > a.max_foir) box.lastChild.style.color = "var(--high)";
-    $("loanFacts").appendChild(box);
-  });
-  $("flagList").innerHTML = "";
-  const flags = c.flags || [];
-  if (!flags.length) $("flagList").innerHTML = '<li class="none">No flags</li>';
-  flags.forEach(f => { const li = document.createElement("li"); li.textContent = f;
-                       if (f.startsWith("MAJOR")) li.className = "major"; $("flagList").appendChild(li); });
-  $("caseCard").classList.remove("hidden"); $("decideCard").classList.remove("hidden");
+  if (!cases.length) { $("history").appendChild(el("li", "muted", "No cases yet")); return; }
+  cases.forEach(c => { const li = el("li"); li.appendChild(el("span", "", `${c.applicant_id || "-"} ${c.risk_tier ? "· " + c.risk_tier : ""}`));
+                       li.appendChild(el("span", "pill " + (c.pill || ""), c.outcome)); $("history").appendChild(li); });
 }
 
 $("run").onclick = async () => {
   let request = $("custom").value.trim() || $("applicant").value;
   if (/^APP_\d{4}$/i.test(request)) request = "Underwrite applicant " + request.toUpperCase();   // a bare ID is fine
-  $("run").disabled = true; current = null;
-  $("caseCard").classList.add("hidden"); $("decideCard").classList.add("hidden"); message("decideMsg");
-  message("runMsg", "wait", "Agents running: guardrails, documents, bureau, checks, rules, risk, memo...");
+  $("run").disabled = true; current = null; message("decideMsg"); message("runMsg");
+  $("caseCard").classList.add("hidden"); $("decideCard").classList.add("hidden"); $("emptyCard").classList.remove("hidden");
+  startSteps();
   try {
     const r = await call("POST", "underwrite", { request });
+    endSteps(r.ok, r.status);
     if (!r.ok) {
-      message("runMsg", "err", `Stopped (${r.status}): ${detailText(r.body)}`);
-      cases.unshift({ case_id: "-", applicant_id: request, outcome: "Stopped: " + detailText(r.body) });
+      message("runMsg", "err", `Stopped: ${detailText(r.body)}`);
+      cases.unshift({ applicant_id: request.replace(/^Underwrite applicant /, ""), outcome: "Stopped", pill: "stopped" });
     } else {
       current = r.body; showCase(current); message("runMsg", "ok", "Case ready for your decision.");
-      document.querySelectorAll("#decideCard button").forEach(b => b.disabled = false);
+      document.querySelectorAll("#decideCard .btn").forEach(b => b.disabled = false);
       $("comment").value = "";
-      cases.unshift({ ...current, outcome: "Waiting for underwriter" });
+      cases.unshift({ ...current, outcome: "Waiting", pill: "wait" });
     }
-  } catch (e) { message("runMsg", "err", "Could not reach the API: " + e); }
+  } catch (e) { endSteps(false); message("runMsg", "err", "Could not reach the API: " + e); }
   drawHistory(); $("run").disabled = false;
 };
 
-document.querySelectorAll("#decideCard button").forEach(btn => btn.onclick = async () => {
+document.querySelectorAll("#decideCard .btn").forEach(btn => btn.onclick = async () => {
   if (!current) return;
   const r = await call("POST", `cases/${current.case_id}/decision`,
                        { decision: btn.dataset.d, underwriter: $("uw").value, comment: $("comment").value });
-  if (!r.ok) { message("decideMsg", "err", `Not accepted (${r.status}): ${detailText(r.body)}`); return; }
+  if (!r.ok) { message("decideMsg", "err", `Not accepted: ${detailText(r.body)}`); return; }
   const check = await call("GET", `cases/${current.case_id}`);
   const d = check.body.human_decision || r.body;
-  $("caseStatus").textContent = "Closed";
-  message("decideMsg", "ok", `Recorded: ${d.decision} by ${d.underwriter}. Saved to the audit log below.`);
-  await loadAudit(current.applicant_id);
-  document.querySelectorAll("#decideCard button").forEach(b => b.disabled = true);
-  const h = cases.find(x => x.case_id === current.case_id); if (h) h.outcome = `${d.decision} by ${d.underwriter}`;
+  $("caseStatus").textContent = `${LABEL[d.decision]} by ${d.underwriter}`; $("caseStatus").className = "pill " + d.decision;
+  message("decideMsg", "ok", `${LABEL[d.decision]} by ${d.underwriter}. Saved to the audit log.`);
+  document.querySelectorAll("#decideCard .btn").forEach(b => b.disabled = true);
+  const h = cases.find(x => x.case_id === current.case_id); if (h) { h.outcome = LABEL[d.decision]; h.pill = d.decision; }
   drawHistory();
 });
+
+// ---------- audit log ----------
+function outcomeOf(e) {
+  if (e.decision) return { key: e.decision, text: LABEL[e.decision] };
+  if (e.status === "Stopped") return { key: "stopped", text: "Stopped" };
+  return { key: "pending", text: "Agents only" };
+}
+async function loadAudit() {                         // every applicant's audit records, through GET /audit
+  const app = $("auditFilter").value;
+  const r = await call("GET", "audit" + (app ? `?applicant_id=${app}` : ""));
+  auditEntries = (r.ok && r.body.entries) || [];
+  const shown = auditStatus ? auditEntries.filter(e => e.status === auditStatus) : auditEntries;
+  $("auditCount").textContent = r.ok ? `${shown.length} record${shown.length === 1 ? "" : "s"}, newest first` : detailText(r.body);
+  $("auditRows").innerHTML = "";
+  if (!shown.length) { const tr = $("auditRows").insertRow(); const td = tr.insertCell(); td.colSpan = 7; td.className = "muted"; td.textContent = "Nothing recorded yet"; return; }
+  shown.forEach(e => {
+    const tr = $("auditRows").insertRow(); const o = outcomeOf(e);
+    tr.insertCell().textContent = e.time; tr.insertCell().textContent = e.applicant_id;
+    const t = tr.insertCell(); if (e.risk_tier) t.appendChild(el("span", "tier " + e.risk_tier, e.risk_tier)); else t.textContent = "-";
+    tr.insertCell().appendChild(el("span", "pill " + o.key, o.text));
+    tr.insertCell().textContent = e.decided_by || "-";
+    const c = tr.insertCell(); c.className = "cmt"; c.textContent = e.comment || "";
+    tr.insertCell().appendChild(el("span", "arrow", "›"));
+    tr.onclick = () => openDetail(e);
+  });
+}
+$("auditFilter").onchange = loadAudit; $("refreshLog").onclick = loadAudit;
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+  auditStatus = c.dataset.f; document.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === c)); loadAudit();
+});
+
+function openDetail(e) {
+  const d = e.details || {}, o = outcomeOf(e), D = $("drawer"); D.innerHTML = "";
+  const banner = el("div", "banner " + o.key); const close = el("button", "close", "✕"); close.onclick = closeDetail; banner.appendChild(close);
+  banner.appendChild(el("p", "", `${e.applicant_id} · ${e.time} UTC`));
+  banner.appendChild(el("h2", "", o.key === "stopped" ? "Stopped before a decision" : o.key === "pending" ? "Prepared by the agents, no sign-off" : o.text));
+  banner.appendChild(el("p", "", e.decided_by ? `by underwriter ${e.decided_by}` : (o.key === "stopped" ? "The agents stopped this case on their own" : "")));
+  D.appendChild(banner);
+  const body = el("div", "body"); D.appendChild(body);
+
+  if (d.comment || d.reason) {
+    body.appendChild(el("h3", "sub", o.key === "stopped" ? "Why it stopped" : "Underwriter's comment"));
+    body.appendChild(el("div", "quote", d.comment || d.reason));
+  } else if (e.decided_by) {
+    body.appendChild(el("h3", "sub", "Underwriter's comment")); body.appendChild(el("p", "muted", "No comment given."));
+  }
+  if (d.risk_tier) {
+    body.appendChild(el("h3", "sub", "What the agents found"));
+    const head = el("div", "casehead"); head.appendChild(el("span", "tier " + d.risk_tier, d.risk_tier + " RISK"));
+    if (d.memo_written_by) head.appendChild(el("span", "muted", "memo " + writer(d.memo_written_by))); body.appendChild(head);
+    const k = el("div", "kpis"); kpiList(k, d.affordability, d.credit_score); body.appendChild(k);
+    body.appendChild(el("h3", "sub", "Why this tier"));
+    const ul = el("ul", "reasons"); reasonsList(ul, d.violations, d.flags); body.appendChild(ul);
+  }
+  if (d.memo) {
+    const det = el("details", "memobox"); det.appendChild(el("summary", "", "Credit memo the underwriter saw"));
+    det.appendChild(el("div", "memo", d.memo)); body.appendChild(det);
+  }
+  const raw = el("details", "memobox"); raw.appendChild(el("summary", "", "Raw audit record"));
+  raw.appendChild(el("pre", "raw", JSON.stringify({ applicant_id: e.applicant_id, timestamp: e.timestamp, details: d }, null, 2))); body.appendChild(raw);
+  $("shade").classList.remove("hidden"); D.classList.remove("hidden"); D.scrollTop = 0;
+}
+function closeDetail() { $("shade").classList.add("hidden"); $("drawer").classList.add("hidden"); }
+$("shade").onclick = closeDetail; document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeDetail(); });
+
 loadApplicants();
-loadAudit();
 </script>
 </body></html>

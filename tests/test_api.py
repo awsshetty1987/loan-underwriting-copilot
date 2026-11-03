@@ -53,6 +53,9 @@ def test_full_journey_and_audit(client):
     assert r.status_code == 409
     latest = client.get("/audit?applicant_id=APP_1008", headers=KEY).json()["entries"][0]
     assert latest["decision"] == "approve" and latest["decided_by"] == "UW-001" and latest["comment"] == "Clean profile"
+    why = latest["details"]                                   # what the screen's audit drill-down shows
+    assert why["risk_tier"] == "LOW" and why["violations"] == [] and "credit_score" in why and why["memo"]
+    assert case["name"] and case["credit_score"] and case["violations"] == []
 
 
 def test_high_risk_approval_needs_a_reason(client):
