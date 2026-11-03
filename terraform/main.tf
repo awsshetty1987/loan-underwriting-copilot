@@ -24,10 +24,9 @@ variable "bucket" {
   default     = "loan-bucket2026"
 }
 
-variable "openai_api_key" {
-  description = "Optional. Without it payslips are read and memos written by plain code."
-  default     = ""
-  sensitive   = true
+variable "openai_secret_name" {
+  description = "Optional Secrets Manager secret (plain text) holding your OpenAI key. You create it once; Terraform only reads it and never deletes it. Without it, plain code reads payslips and writes memos."
+  default     = "loan-copilot/openai"
 }
 
 variable "allowed_ip" {
@@ -36,8 +35,25 @@ variable "allowed_ip" {
 }
 
 variable "docker_host" {
-  description = "Windows: npipe:////./pipe/docker_engine   Mac/Linux: leave empty"
+  description = "Only if Docker is somewhere unusual. Empty = Docker Desktop's default on Windows, Mac and Linux"
   default     = ""
+}
+
+locals {
+  windows = !startswith(abspath(path.root), "/") # Windows paths start with a drive letter
+}
+
+# Your OpenAI key, if you stored it once in Secrets Manager (see README). Found by exact name; absent = no GPT.
+data "aws_secretsmanager_secrets" "openai" {
+  filter {
+    name   = "name"
+    values = [var.openai_secret_name]
+  }
+}
+
+locals {
+  openai_secret = one([for arn in data.aws_secretsmanager_secrets.openai.arns : arn
+  if can(regex(":secret:${var.openai_secret_name}-[A-Za-z0-9]{6}$", arn))])
 }
 
 # ---------------- providers ----------------
@@ -50,7 +66,7 @@ provider "aws" {
 data "aws_ecr_authorization_token" "ecr" {}
 
 provider "docker" {
-  host = var.docker_host != "" ? var.docker_host : null
+  host = var.docker_host != "" ? var.docker_host : (local.windows ? "npipe:////./pipe/docker_engine" : null)
   registry_auth {
     address  = data.aws_ecr_authorization_token.ecr.proxy_endpoint
     username = data.aws_ecr_authorization_token.ecr.user_name
@@ -145,7 +161,6 @@ resource "aws_secretsmanager_secret_version" "app" {
     CORE_BANKING_API_KEY  = random_password.core_banking_key.result
     POSTGRES_PASSWORD     = random_password.db.result
     DATABASE_URL          = "postgresql://copilot:${random_password.db.result}@127.0.0.1:5432/copilot"
-    OPENAI_API_KEY        = var.openai_api_key
   })
 }
 
@@ -175,7 +190,7 @@ resource "aws_iam_role_policy" "execution_secret" {
   role = aws_iam_role.execution.id
   policy = jsonencode({
     Version   = "2012-10-17"
-    Statement = [{ Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = aws_secretsmanager_secret.app.arn }]
+    Statement = [{ Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = compact([aws_secretsmanager_secret.app.arn, local.openai_secret]) }]
   })
 }
 
@@ -322,7 +337,7 @@ resource "aws_ecs_task_definition" "app" {
       environment = concat(local.storage, [{ name = "CREDIT_BUREAU_URL", value = "http://127.0.0.1:9000/credit-report" },
       { name = "CORE_BANKING_URL", value = "http://127.0.0.1:9000/core-banking/history" }])
       secrets = concat([for k in concat(["API_KEYS", "DATABASE_URL"], local.bank_keys) : { name = k, valueFrom = "${local.secret}:${k}::" }],
-      var.openai_api_key != "" ? [{ name = "OPENAI_API_KEY", valueFrom = "${local.secret}:OPENAI_API_KEY::" }] : [])
+      local.openai_secret != null ? [{ name = "OPENAI_API_KEY", valueFrom = local.openai_secret }] : [])
       dependsOn        = [{ containerName = "db", condition = "HEALTHY" }, { containerName = "bank-systems", condition = "START" }]
       logConfiguration = local.logs["api"]
     },

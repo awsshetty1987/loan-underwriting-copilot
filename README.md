@@ -16,6 +16,10 @@ You need: the AWS CLI logged in to your account, [Terraform](https://developer.h
 aws s3 sync sample_data s3://loan-bucket2026/
 ```
 
+**Once, optional: store your OpenAI key in Secrets Manager**, so GPT reads payslips and writes memos. Without it, plain code does both.
+In the AWS console (region eu-north-1): Secrets Manager → Store a new secret → Other type of secret → **Plaintext** → paste only the key → name it `loan-copilot/openai`.
+Terraform only reads this secret and never deletes it. It costs about $0.40 a month.
+
 **Each demo: bring it up** (takes about 5 minutes the first time)
 
 ```bash
@@ -27,8 +31,7 @@ terraform output -raw api_key  # the screen asks for this key
 
 Open the `screen_url` it prints. Only your own IP address can open it.
 
-- To let GPT read payslips and write memos, add `-var openai_api_key=sk-...` to `terraform apply`. Without it, plain code does both.
-- On Windows, add `-var docker_host=npipe:////./pipe/docker_engine`.
+Nothing to type in: the app's own keys are made fresh in Secrets Manager on every apply, and your OpenAI key is picked up from `loan-copilot/openai` if it exists.
 
 **After the demo: destroy it**
 
