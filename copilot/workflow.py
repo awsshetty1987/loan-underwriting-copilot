@@ -121,6 +121,13 @@ def build_workflow(checkpointer, with_human_review: bool = True):
     return graph.compile(checkpointer=checkpointer)
 
 
+def _screen_facts(state: dict) -> dict:
+    """The few extra facts the screen shows next to the tier: who, credit score, hard-rule failures."""
+    slip, report, policy = state.get("slip") or {}, state.get("report") or {}, state.get("policy") or {}
+    return {"name": slip.get("name"), "employer": slip.get("employer"), "credit_score": report.get("credit_score"),
+            "violations": policy.get("violations"), "memo_written_by": (state.get("memo") or {}).get("written_by")}
+
+
 class CaseNotFound(LookupError):
     pass
 
@@ -146,7 +153,8 @@ class CaseService:
         return {"case_id": case_id, "status": "waiting_for_underwriter" if waiting else state["status"],
                 "applicant_id": state.get("applicant_id"), "risk_tier": state.get("risk_tier"),
                 "memo": state.get("memo", {}).get("memo"), "reason": state.get("reason"),
-                "flags": state.get("flags"), "affordability": state.get("policy", {}).get("affordability")}
+                "flags": state.get("flags"), "affordability": state.get("policy", {}).get("affordability"),
+                **_screen_facts(state)}
 
     async def get(self, case_id: str) -> dict:
         snapshot = await self.workflow.aget_state(self._config(case_id))
@@ -157,7 +165,7 @@ class CaseService:
                 "status": "waiting_for_underwriter" if "human_review" in snapshot.next else v.get("status"),
                 "memo": v.get("memo", {}).get("memo"), "flags": v.get("flags"),
                 "affordability": v.get("policy", {}).get("affordability"),
-                "human_decision": v.get("human_decision")}
+                "human_decision": v.get("human_decision"), **_screen_facts(v)}
 
     async def submit_decision(self, case_id: str, decision: str, underwriter: str, comment: str = "") -> dict:
         current = await self.get(case_id)

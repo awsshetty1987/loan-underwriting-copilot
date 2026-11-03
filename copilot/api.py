@@ -133,5 +133,6 @@ def audit(applicant_id: str = ""):
         entries.append({"time": e.get("timestamp", "")[:19].replace("T", " "), "applicant_id": e.get("applicant_id"),
                         "risk_tier": d.get("risk_tier"), "status": _status(d.get("decision")),
                         "decision": d.get("decision") if d.get("decision") in DECISIONS else None,
-                        "decided_by": d.get("decided_by"), "comment": d.get("comment") or d.get("reason")})
+                        "decided_by": d.get("decided_by"), "comment": d.get("comment") or d.get("reason"),
+                        "timestamp": e.get("timestamp"), "details": d})          # details: everything, for the drill-down
     return {"entries": entries}
