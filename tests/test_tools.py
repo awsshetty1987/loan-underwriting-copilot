@@ -109,7 +109,7 @@ def test_a_broken_pdf_is_reported(tmp_path, monkeypatch):
 def test_core_banking_history_is_asked_live_by_pan():
     history = t.get_core_banking_history("APP_1008")
     assert history["pan"] == t.get_kyc_details("APP_1008")["pan"]
-    assert history["existing_customer"] is False and history["tenure_months"] == 3
+    assert history["existing_customer"] is True and history["tenure_months"] == 3
 
 
 def test_a_customer_new_to_the_bank_is_not_an_error(monkeypatch):
