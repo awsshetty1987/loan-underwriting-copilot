@@ -1,4 +1,4 @@
 -r requirements.txt
 pytest>=8
 ruff>=0.6
-moto[s3]>=5
+moto[s3,ecs,ec2,iam,secretsmanager,logs,ecr]>=5

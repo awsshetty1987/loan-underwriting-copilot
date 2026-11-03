@@ -45,7 +45,7 @@ The rules, checks, agents, tiers and screen are the same as NB03_v2 + NB04.
 ```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-pytest -q                                              # 36 tests, no AWS or OpenAI needed
+pytest -q                                              # 38 tests, no AWS or OpenAI needed
 ```
 
 To use the screen, start the bureau and the API in two terminals:
@@ -82,7 +82,7 @@ Interactive docs: `/docs`.
 
 ## Deploy to AWS
 
-See [docs/DEPLOY.md](docs/DEPLOY.md).
+For a demo: `python scripts/demo.py up`, then `python scripts/demo.py down` (about $0.05 an hour; it stops itself after 60 minutes). Full details and the all-day setup: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Known limits (next phases)
 

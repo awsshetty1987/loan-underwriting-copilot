@@ -1,4 +1,32 @@
-# Deploying to AWS (pilot)
+# Deploying to AWS
+
+There are two ways. Use the **demo** for now; the **full setup** is for when real users need it all day.
+
+## Demo: start it for an hour, then stop it
+
+One script does everything: `scripts/demo.py`. Run it from your laptop.
+
+**You need:** Python with boto3 (`pip install boto3`), AWS credentials for your account (`aws configure`, or the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables, for a user allowed to manage ECS, ECR, IAM roles, Secrets Manager, CloudWatch Logs and EC2 security groups), and **Docker Desktop** running (only to build the image).
+
+```bash
+python scripts/demo.py up --openai-key sk-...   # first time: also stores your OpenAI key (optional)
+python scripts/demo.py up                       # later demos
+python scripts/demo.py key                      # the API key the screen asks for
+python scripts/demo.py status                   # is anything running?
+python scripts/demo.py down                     # stop it (do this when the demo ends)
+```
+
+`up` prints a link like `http://13.48.x.x:8000/screen`. The demo **stops by itself after 60 minutes** (`--minutes 30` to change), so a forgotten demo can't run up a bill.
+
+What it creates the first time, and reuses afterwards: an ECR repository `loan-copilot`, a secret `loan-copilot-demo` (random API key, bureau key and database password, plus your OpenAI key if given), two IAM roles, a log group kept 7 days, an ECS cluster and a security group that opens port 8000 **to your current IP only** (updated on every `up`).
+
+Each demo is one Fargate task (0.5 vCPU, 1 GB) with four containers: the API, the mock bureau, a Postgres for cases waiting for a decision, and the timer. There is no load balancer and no RDS, because both charge even when nothing runs. Documents and the audit log are your existing S3 bucket; cases still waiting when the task stops are gone, decisions already made stay in the audit log.
+
+Approximate cost (list prices, eu-north-1): about **$0.05 per demo hour** plus a few rupees of GPT; **under $1 a month** while stopped (the secret, the stored image, logs). Plain HTTP to one IP address is fine for a demo, not for customer data.
+
+---
+
+## Full setup (all day, real users)
 
 The pilot runs as **one ECS Fargate task with two containers** (the API and the mock bureau, which talk over localhost), behind an Application Load Balancer, with **RDS Postgres** for paused cases and the existing **S3 bucket** for documents and audit records.
 
