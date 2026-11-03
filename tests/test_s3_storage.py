@@ -35,6 +35,6 @@ def test_s3_backend(s3_bucket):
     assert tools.get_policy_rules()["min_credit_score"] == 650
     assert tools.find_missing_documents("APP_1008") == []
     with pytest.raises(FileNotFoundError):
-        tools.get_document("APP_1008", "kyc", "nope.txt")
+        tools.get_document("APP_1009", "kyc")
     tools.log_audit_action("APP_1008", "test", {"decision": "approve"})
     assert tools.read_audit_entries("APP_1008")[0]["details"]["decision"] == "approve"

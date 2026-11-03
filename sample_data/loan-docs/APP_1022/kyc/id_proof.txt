@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Priya Nair
-PAN: GGROE7912F
-Aadhaar (masked): XXXX-XXXX-6507
-Address: 172 MG Road, Bengaluru, Karnataka

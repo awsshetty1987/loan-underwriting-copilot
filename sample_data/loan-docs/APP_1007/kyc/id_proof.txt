@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Karthik Gupta
-PAN: UWRHV6313Y
-Aadhaar (masked): XXXX-XXXX-8041
-Address: 33 MG Road, Bengaluru, Karnataka

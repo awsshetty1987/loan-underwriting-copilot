@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Priya Nair
-PAN: HQTAR4257W
-Aadhaar (masked): XXXX-XXXX-3579
-Address: 15 MG Road, Bengaluru, Karnataka

@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Meera Gupta
-PAN: ZAYZF7924K
-Aadhaar (masked): XXXX-XXXX-1651
-Address: 159 MG Road, Bengaluru, Karnataka

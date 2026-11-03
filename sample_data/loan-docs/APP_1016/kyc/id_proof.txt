@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Suresh Reddy
-PAN: EVPRF5342Q
-Aadhaar (masked): XXXX-XXXX-2193
-Address: 117 MG Road, Bengaluru, Karnataka

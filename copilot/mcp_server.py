@@ -16,7 +16,7 @@ def find_missing_documents(applicant_id: str) -> list[str]:
 @mcp.tool()
 def read_salary_slip(applicant_id: str) -> dict:
     """Reads the payslip: gross (declared_income), net_pay, earnings, deductions, employer, name, pan, dates."""
-    return t.extract_income_fields(t.get_document(applicant_id, "income", "salary_certificate.txt"))
+    return t.extract_income_fields(t.get_document(applicant_id, "income"))
 
 
 @mcp.tool()

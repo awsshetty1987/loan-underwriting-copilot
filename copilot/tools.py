@@ -16,10 +16,11 @@ from .llm import call_llm, parse_json
 
 APPLICANT_ID_PATTERN = re.compile(r"APP_\d{4}")
 PAN_PATTERN = re.compile(r"[A-Z]{5}[0-9]{4}[A-Z]")
-DOC_TYPES = {"income", "bank-statements", "kyc"}
-REQUIRED_DOCS = [("income", "salary_certificate.txt"),
-                 ("bank-statements", "statement_6m.csv"),
-                 ("kyc", "id_proof.txt")]
+# The documents a customer gives us, by type. A PDF is used if there is one; the text versions are the older
+# notebook format (NB01 to NB04) and still work. Scanned photos need OCR (Textract): not yet.
+DOCUMENTS = {"income": ["salary_slip.pdf", "salary_certificate.txt"],
+             "bank-statements": ["statement_6m.pdf", "statement_6m.csv"],
+             "kyc": ["id_proof.pdf", "id_proof.txt"]}
 SALARY_KEYWORDS = ["SALARY", "SAL ", "SAL/", "SAL-", "PAYROLL"]
 
 
@@ -62,25 +63,55 @@ def list_applicants() -> list[str]:
 
 # ---------- documents ----------
 
-def get_document(applicant_id: str, doc_type: str, filename: str) -> str:
-    """doc_type: 'income' | 'bank-statements' | 'kyc'"""
+def find_document(applicant_id: str, doc_type: str) -> tuple[str, bytes]:
+    """(file name, content) of the applicant's document of this type. Raises FileNotFoundError if none."""
     check_applicant_id(applicant_id)
-    if doc_type not in DOC_TYPES:
-        raise ValueError(f"doc_type must be one of {sorted(DOC_TYPES)}")
+    if doc_type not in DOCUMENTS:
+        raise ValueError(f"doc_type must be one of {sorted(DOCUMENTS)}")
+    for filename in DOCUMENTS[doc_type]:
+        try:
+            return filename, storage.get_bytes(f"loan-docs/{applicant_id}/{doc_type}/{filename}")
+        except FileNotFoundError:
+            continue
+    raise FileNotFoundError(f"Missing document for {applicant_id}: {doc_type}/{DOCUMENTS[doc_type][0]}")
+
+
+def _pdf(content: bytes):
+    import pdfplumber
     try:
-        return storage.get_text(f"loan-docs/{applicant_id}/{doc_type}/{filename}")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Missing document for {applicant_id}: {doc_type}/{filename}") from None
+        return pdfplumber.open(io.BytesIO(content))
+    except Exception as e:
+        raise ValueError(f"Could not read the PDF: {e}") from None
+
+
+def pdf_to_text(content: bytes) -> str:
+    """The PDF as 'Label: value' lines, the same shape as the old text documents. Each table becomes a section:
+    its header's first cell is the section name, each row 'label: amount'."""
+    with _pdf(content) as pdf:
+        lines, sections = [], []
+        for page in pdf.pages:
+            lines += [ln.strip() for ln in (page.extract_text() or "").splitlines() if ":" in ln]
+            for table in page.extract_tables():
+                if table and table[0] and table[0][0]:
+                    sections.append(table[0][0].strip().upper())
+                    sections += [f"{row[0].strip()}: {row[-1].strip()}" for row in table[1:] if row and row[0]]
+    return "\n".join(lines + sections)
+
+
+def get_document(applicant_id: str, doc_type: str) -> str:
+    """The document as text (a PDF is converted). doc_type: 'income' | 'bank-statements' | 'kyc'"""
+    filename, content = find_document(applicant_id, doc_type)
+    return pdf_to_text(content) if filename.endswith(".pdf") else content.decode("utf-8")
 
 
 def find_missing_documents(applicant_id: str) -> list[str]:
     """The required documents that are not on file (empty list = all present)."""
     missing = []
-    for doc_type, filename in REQUIRED_DOCS:
+    for doc_type, names in DOCUMENTS.items():
         try:
-            get_document(applicant_id, doc_type, filename)
+            find_document(applicant_id, doc_type)
         except FileNotFoundError:
-            missing.append(f"{doc_type}/{filename}")
+            missing.append(f"{doc_type}/{names[0]}")
     return missing
 
 
@@ -162,7 +193,7 @@ def extract_income_fields(raw_text: str) -> dict:
 # ---------- identity and credit bureau ----------
 
 def get_kyc_details(applicant_id: str) -> dict:
-    text = get_document(applicant_id, "kyc", "id_proof.txt")
+    text = get_document(applicant_id, "kyc")
     labels = {"Name": "name", "PAN": "pan", "Aadhaar (masked)": "aadhaar_masked", "Address": "address"}
     kyc = {}
     for line in text.splitlines():
@@ -180,7 +211,7 @@ def verify_identity(applicant_id: str, slip: dict | None = None) -> dict:
     """KYC PAN must equal the salary-slip PAN. slip = the payslip fields if already read (saves a GPT call)."""
     kyc = get_kyc_details(applicant_id)
     if slip is None:
-        slip = extract_income_fields(get_document(applicant_id, "income", "salary_certificate.txt"))
+        slip = extract_income_fields(get_document(applicant_id, "income"))
     slip_pan = (slip.get("pan") or "").upper()
     if slip_pan != kyc["pan"]:
         raise IdentityMismatchError(f"{applicant_id}: PAN on salary slip ({slip_pan or 'missing'}) "
@@ -229,16 +260,25 @@ def is_salary_credit(description: str, employer: str | None = None) -> bool:
 
 def get_statement_rows(applicant_id: str) -> list[dict]:
     """Statement rows with date, description, debit, credit, balance (None if the file has no balance column).
-    Reads both the old format (type, amount) and the new one (debit, credit, balance)."""
+    Reads the PDF statement's table, or the older CSV formats (type + amount, or debit + credit + balance)."""
+    filename, content = find_document(applicant_id, "bank-statements")
+    if filename.endswith(".pdf"):
+        with _pdf(content) as pdf:
+            table = [row for page in pdf.pages for t in page.extract_tables() for row in t]
+        header = [c.strip().lower() for c in table[0]] if table else []
+        records = [dict(zip(header, row, strict=False)) for row in table if row and row[0] and row[0][:1].isdigit()]
+    else:
+        records = list(csv.DictReader(io.StringIO(content.decode("utf-8"))))
     rows = []
-    for r in csv.DictReader(io.StringIO(get_document(applicant_id, "bank-statements", "statement_6m.csv"))):
+    for r in records:
         if "amount" in r:
-            amount = float(r["amount"])
+            amount = to_number(r["amount"]) or 0.0
             debit, credit = (amount, 0.0) if r["type"].strip().lower() == "debit" else (0.0, amount)
         else:
-            debit, credit = float(r["debit"] or 0), float(r["credit"] or 0)
-        rows.append({"date": r["date"], "description": r["description"], "debit": debit, "credit": credit,
-                     "balance": float(r["balance"]) if r.get("balance") else None})
+            debit, credit = to_number(r.get("debit")) or 0.0, to_number(r.get("credit")) or 0.0
+        balance = to_number(r.get("balance"))
+        rows.append({"date": r["date"].strip(), "description": r["description"].strip(), "debit": debit,
+                     "credit": credit, "balance": balance})
     return rows
 
 
@@ -307,17 +347,17 @@ def check_balance_arithmetic(rows: list[dict]) -> list[str]:
     return []
 
 
-def _fingerprint(applicant_id: str, doc_type: str, filename: str) -> str | None:
+def _fingerprint(applicant_id: str, doc_type: str) -> str | None:
     try:
-        return hashlib.sha256(get_document(applicant_id, doc_type, filename).encode("utf-8")).hexdigest()
+        return hashlib.sha256(find_document(applicant_id, doc_type)[1]).hexdigest()
     except FileNotFoundError:
         return None
 
 
 def check_file_reuse(applicant_id: str) -> list[str]:
-    """The same payslip / statement / KYC file (identical SHA-256) on an EARLIER application.
+    """The same payslip / statement / KYC file (identical SHA-256 of the file) on an EARLIER application.
     The earlier applicant is not flagged, only the later copy."""
-    mine = {(t, f): _fingerprint(applicant_id, t, f) for t, f in REQUIRED_DOCS}
+    mine = {t: _fingerprint(applicant_id, t) for t in DOCUMENTS}
     my_date = (get_loan_request(applicant_id) or {}).get("application_date", "9999")
     flags = []
     for other in list_applicants():
@@ -325,9 +365,9 @@ def check_file_reuse(applicant_id: str) -> list[str]:
             continue
         if (get_loan_request(other) or {}).get("application_date", "9999") > my_date:
             continue
-        for t, f in REQUIRED_DOCS:
-            if mine[(t, f)] and mine[(t, f)] == _fingerprint(other, t, f):
-                flags.append(f"MAJOR document: {t}/{f} is an exact copy of {other}'s file")
+        for t in DOCUMENTS:
+            if mine[t] and mine[t] == _fingerprint(other, t):
+                flags.append(f"MAJOR document: {t} file is an exact copy of {other}'s file")
     return flags
 
 

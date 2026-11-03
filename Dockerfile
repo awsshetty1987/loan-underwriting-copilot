@@ -1,4 +1,4 @@
-# One image for both services: the API (default) and the mock credit bureau (see docker-compose.yml / ECS).
+# One image for both services: the API (default) and the mock credit bureau (Terraform runs both in one ECS task).
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1

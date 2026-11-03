@@ -1,4 +1,4 @@
-"""All settings come from environment variables (see .env.example). No keys live in the code."""
+"""All settings come from environment variables (on AWS, Terraform fills them from Secrets Manager). No keys live in the code."""
 import os
 from dataclasses import dataclass, field
 

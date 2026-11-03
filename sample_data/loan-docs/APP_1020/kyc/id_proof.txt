@@ -1,6 +1,0 @@
-KYC DETAILS (Synthetic Test Data — Not Real)
-
-Name: Meera Rao
-PAN: HZPZN4119D
-Aadhaar (masked): XXXX-XXXX-4505
-Address: 17 MG Road, Bengaluru, Karnataka
