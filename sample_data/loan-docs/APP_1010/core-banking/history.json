@@ -1,6 +1,7 @@
 {
   "applicant_id": "APP_1010",
-  "existing_customer": false,
+  "pan": "HEQPC1771D",
+  "existing_customer": true,
   "tenure_months": 44,
   "past_loans_with_bank": 2,
   "past_loan_defaults": 0

@@ -15,6 +15,8 @@ class Settings:
     aws_region: str = field(default_factory=lambda: os.environ.get("AWS_REGION", "eu-north-1"))
     bureau_url: str = field(default_factory=lambda: os.environ.get("CREDIT_BUREAU_URL", "http://127.0.0.1:9000/credit-report"))
     bureau_api_key: str = field(default_factory=lambda: os.environ.get("CREDIT_BUREAU_API_KEY", ""))
+    core_banking_url: str = field(default_factory=lambda: os.environ.get("CORE_BANKING_URL", "http://127.0.0.1:9000/core-banking/history"))
+    core_banking_api_key: str = field(default_factory=lambda: os.environ.get("CORE_BANKING_API_KEY", ""))
     openai_model: str = field(default_factory=lambda: os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
     database_url: str = field(default_factory=lambda: os.environ.get("DATABASE_URL", ""))           # empty = in-memory cases
     api_keys: list[str] = field(default_factory=lambda: _list(os.environ.get("API_KEYS", "")))

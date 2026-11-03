@@ -231,9 +231,20 @@ def get_credit_bureau_report(applicant_id: str, slip: dict | None = None) -> dic
     return resp.json()
 
 
+NEW_TO_BANK = {"existing_customer": False, "tenure_months": 0, "past_loans_with_bank": 0, "past_loan_defaults": 0}
+
+
 def get_core_banking_history(applicant_id: str) -> dict:
+    """Asks the bank's core-banking system, by the PAN on the KYC. Not found = new to bank, not an error."""
     check_applicant_id(applicant_id)
-    return json.loads(storage.get_text(f"loan-docs/{applicant_id}/core-banking/history.json"))
+    pan = get_kyc_details(applicant_id)["pan"]
+    cfg = settings()
+    resp = httpx.post(cfg.core_banking_url, json={"pan": pan},
+                      headers={"x-api-key": cfg.core_banking_api_key}, timeout=30.0)
+    if resp.status_code == 404:
+        return {"applicant_id": applicant_id, "pan": pan, **NEW_TO_BANK}
+    resp.raise_for_status()
+    return resp.json()
 
 
 def get_policy_rules() -> dict:

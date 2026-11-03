@@ -1,6 +1,7 @@
 {
   "applicant_id": "APP_1021",
-  "existing_customer": false,
+  "pan": "XBVUU2612B",
+  "existing_customer": true,
   "tenure_months": 53,
   "past_loans_with_bank": 2,
   "past_loan_defaults": 0

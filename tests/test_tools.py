@@ -104,3 +104,27 @@ def test_a_broken_pdf_is_reported(tmp_path, monkeypatch):
     monkeypatch.setenv("LOCAL_DATA_DIR", str(tmp_path))
     with pytest.raises(ValueError, match="Could not read the PDF"):
         t.get_document("APP_1001", "income")
+
+
+def test_core_banking_history_is_asked_live_by_pan():
+    history = t.get_core_banking_history("APP_1008")
+    assert history["pan"] == t.get_kyc_details("APP_1008")["pan"]
+    assert history["existing_customer"] is True and history["tenure_months"] == 3
+
+
+def test_a_customer_new_to_the_bank_is_not_an_error(monkeypatch):
+    monkeypatch.setattr(t, "get_kyc_details", lambda app: {"pan": "ZZZZZ9999Z", "name": "New Customer"})
+    history = t.get_core_banking_history("APP_1008")
+    assert history["existing_customer"] is False and history["past_loan_defaults"] == 0
+
+
+def test_bank_systems_need_their_own_keys():
+    from fastapi.testclient import TestClient
+
+    from copilot.bank_systems_mock import app
+    client = TestClient(app)
+    pan = t.get_kyc_details("APP_1008")["pan"]
+    assert client.post("/core-banking/history", json={"pan": pan}, headers={"x-api-key": "test-bureau-key"}).status_code == 401
+    assert client.post("/credit-report", json={"pan": pan}, headers={"x-api-key": "test-core-banking-key"}).status_code == 401
+    assert client.post("/core-banking/history", json={"pan": pan},
+                       headers={"x-api-key": "test-core-banking-key"}).status_code == 200
