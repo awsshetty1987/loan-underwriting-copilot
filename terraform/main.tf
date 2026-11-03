@@ -122,6 +122,11 @@ resource "random_password" "bureau_key" {
   special = false
 }
 
+resource "random_password" "core_banking_key" {
+  length  = 32
+  special = false
+}
+
 resource "random_password" "db" {
   length  = 32
   special = false
@@ -137,6 +142,7 @@ resource "aws_secretsmanager_secret_version" "app" {
   secret_string = jsonencode({
     API_KEYS              = random_password.api_key.result
     CREDIT_BUREAU_API_KEY = random_password.bureau_key.result
+    CORE_BANKING_API_KEY  = random_password.core_banking_key.result
     POSTGRES_PASSWORD     = random_password.db.result
     DATABASE_URL          = "postgresql://copilot:${random_password.db.result}@127.0.0.1:5432/copilot"
     OPENAI_API_KEY        = var.openai_api_key
@@ -273,11 +279,12 @@ resource "aws_ecs_cluster" "app" {
 locals {
   secret  = aws_secretsmanager_secret.app.arn
   storage = [{ name = "STORAGE_BACKEND", value = "s3" }, { name = "S3_BUCKET", value = var.bucket }, { name = "AWS_REGION", value = var.region }]
-  logs = { for c in ["db", "bureau", "api"] : c => {
+  logs = { for c in ["db", "bank-systems", "api"] : c => {
     logDriver = "awslogs"
     options   = { "awslogs-group" = aws_cloudwatch_log_group.app.name, "awslogs-region" = var.region, "awslogs-stream-prefix" = c }
   } }
-  image = "${aws_ecr_repository.app.repository_url}@${docker_registry_image.app.sha256_digest}"
+  bank_keys = ["CREDIT_BUREAU_API_KEY", "CORE_BANKING_API_KEY"]
+  image     = "${aws_ecr_repository.app.repository_url}@${docker_registry_image.app.sha256_digest}"
 }
 
 resource "aws_ecs_task_definition" "app" {
@@ -302,20 +309,21 @@ resource "aws_ecs_task_definition" "app" {
       healthCheck       = { command = ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U copilot"], interval = 5, timeout = 3, retries = 10, startPeriod = 10 }
       logConfiguration  = local.logs["db"]
     },
-    { # mock credit bureau
-      name             = "bureau", image = local.image, essential = true, memoryReservation = 128
-      command          = ["uvicorn", "copilot.bureau_mock:app", "--host", "127.0.0.1", "--port", "9000"]
+    { # stand-in for the bank's systems: credit bureau and core banking (in PROD: the real APIs instead)
+      name             = "bank-systems", image = local.image, essential = true, memoryReservation = 128
+      command          = ["uvicorn", "copilot.bank_systems_mock:app", "--host", "127.0.0.1", "--port", "9000"]
       environment      = local.storage
-      secrets          = [{ name = "CREDIT_BUREAU_API_KEY", valueFrom = "${local.secret}:CREDIT_BUREAU_API_KEY::" }]
-      logConfiguration = local.logs["bureau"]
+      secrets          = [for k in local.bank_keys : { name = k, valueFrom = "${local.secret}:${k}::" }]
+      logConfiguration = local.logs["bank-systems"]
     },
     { # the API and the underwriter screen
       name         = "api", image = local.image, essential = true, memoryReservation = 512
       portMappings = [{ containerPort = 8000 }]
-      environment  = concat(local.storage, [{ name = "CREDIT_BUREAU_URL", value = "http://127.0.0.1:9000/credit-report" }])
-      secrets = concat([for k in ["API_KEYS", "CREDIT_BUREAU_API_KEY", "DATABASE_URL"] : { name = k, valueFrom = "${local.secret}:${k}::" }],
+      environment = concat(local.storage, [{ name = "CREDIT_BUREAU_URL", value = "http://127.0.0.1:9000/credit-report" },
+      { name = "CORE_BANKING_URL", value = "http://127.0.0.1:9000/core-banking/history" }])
+      secrets = concat([for k in concat(["API_KEYS", "DATABASE_URL"], local.bank_keys) : { name = k, valueFrom = "${local.secret}:${k}::" }],
       var.openai_api_key != "" ? [{ name = "OPENAI_API_KEY", valueFrom = "${local.secret}:OPENAI_API_KEY::" }] : [])
-      dependsOn        = [{ containerName = "db", condition = "HEALTHY" }, { containerName = "bureau", condition = "START" }]
+      dependsOn        = [{ containerName = "db", condition = "HEALTHY" }, { containerName = "bank-systems", condition = "START" }]
       logConfiguration = local.logs["api"]
     },
   ])

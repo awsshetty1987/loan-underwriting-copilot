@@ -27,7 +27,7 @@ def get_credit_bureau_report(applicant_id: str, slip: dict | None = None) -> dic
 
 @mcp.tool()
 def get_core_banking_history(applicant_id: str) -> dict:
-    """The applicant's history with our own bank (tenure, past loans, defaults)."""
+    """The applicant's history with our own bank (tenure, past loans, defaults), asked live by PAN. New to bank = all zero."""
     return t.get_core_banking_history(applicant_id)
 
 

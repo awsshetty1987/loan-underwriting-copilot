@@ -42,12 +42,12 @@ terraform destroy              # type yes. Removes everything except the S3 buck
 
 | Folder | Comes from | In PROD |
 |---|---|---|
-| `loan-docs/APP_xxxx/income/salary_slip.pdf` | Customer | Uploaded by the customer |
-| `loan-docs/APP_xxxx/bank-statements/statement_6m.pdf` | Customer | Uploaded by the customer |
-| `loan-docs/APP_xxxx/kyc/id_proof.pdf` | Customer | Uploaded by the customer |
+| `loan-docs/APP_xxxx/income/salary_slip.pdf` | Customer | Uploaded by the bank employee |
+| `loan-docs/APP_xxxx/bank-statements/statement_6m.pdf` | Customer | Uploaded by the bank employee |
+| `loan-docs/APP_xxxx/kyc/id_proof.pdf` | Customer | Uploaded by the bank employee (from DigiLocker or another route the bank allows) |
 | `loan-docs/APP_xxxx/application/loan_request.json` | Application form | Saved by the online or branch form |
-| `loan-docs/APP_xxxx/credit-bureau/report.json` | Credit bureau | Bureau API |
-| `loan-docs/APP_xxxx/core-banking/history.json` | Bank's own systems | Core-banking API |
+| `loan-docs/APP_xxxx/credit-bureau/report.json` | Credit bureau | Bureau API, asked live by PAN |
+| `loan-docs/APP_xxxx/core-banking/history.json` | Bank's own systems | Core-banking API, asked live by PAN (not found = new to bank) |
 | `loan-policy/rules.json` | Credit policy | Same file |
 
 ## Run the tests
@@ -62,12 +62,12 @@ pytest -q                                              # no AWS or OpenAI needed
 
 | Path | What it is |
 |---|---|
-| `terraform/main.tf` | The whole AWS demo setup in one file: image build, ECS task (app, mock bureau, Postgres), load balancer, secrets, IAM |
+| `terraform/main.tf` | The whole AWS demo setup in one file: image build, ECS task (app, stand-in bank systems, Postgres), load balancer, secrets, IAM |
 | `copilot/tools.py` | The checks in plain Python, and the PDF readers |
 | `copilot/agents.py` | The 8 agents and which tools each may use |
 | `copilot/workflow.py` | The LangGraph workflow and the pause for human sign-off |
 | `copilot/api.py` | REST API and the underwriter screen (`/screen`) |
 | `copilot/mcp_server.py` | The tool server the agents call |
-| `copilot/bureau_mock.py` | Stand-in credit bureau |
+| `copilot/bank_systems_mock.py` | Stand-in for the bank's systems: credit bureau and core banking, looked up by PAN |
 | `copilot/storage.py` | Reads and writes S3 (or a local folder in tests) |
 | `tests/` | Automated tests; `make_sample_pdfs.py` made the test PDFs |
