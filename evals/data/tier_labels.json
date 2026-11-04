@@ -1,0 +1,131 @@
+{
+ "_about": "Expected risk tier per applicant. 'hand' = checked by a person against the rules; 'baseline' = the tier the rules gave when this file was made, kept so any change in behaviour shows up.",
+ "applicants": {
+  "APP_1000": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1001": {
+   "tier": "MEDIUM",
+   "source": "hand"
+  },
+  "APP_1002": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1003": {
+   "tier": "MEDIUM",
+   "source": "baseline"
+  },
+  "APP_1004": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1005": {
+   "tier": "MEDIUM",
+   "source": "baseline"
+  },
+  "APP_1006": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1007": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1008": {
+   "tier": "LOW",
+   "source": "hand"
+  },
+  "APP_1009": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_1010": {
+   "tier": "LOW",
+   "source": "baseline"
+  },
+  "APP_1011": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1012": {
+   "tier": "LOW",
+   "source": "baseline"
+  },
+  "APP_1013": {
+   "tier": "MEDIUM",
+   "source": "hand"
+  },
+  "APP_1014": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1015": {
+   "tier": "MEDIUM",
+   "source": "baseline"
+  },
+  "APP_1016": {
+   "tier": "LOW",
+   "source": "baseline"
+  },
+  "APP_1017": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1018": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1019": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_1020": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1021": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1022": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1023": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1024": {
+   "tier": "HIGH",
+   "source": "baseline"
+  },
+  "APP_1025": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_1026": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_1027": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_1028": {
+   "tier": "HIGH",
+   "source": "hand"
+  },
+  "APP_2028": {
+   "tier": "LOW",
+   "source": "hand"
+  }
+ },
+ "planted": {
+  "APP_1025": "MAJOR document",
+  "APP_1026": "MAJOR document",
+  "APP_1027": "MAJOR document",
+  "APP_1028": "MAJOR affordability"
+ }
+}

@@ -21,6 +21,7 @@ class Settings:
     database_url: str = field(default_factory=lambda: os.environ.get("DATABASE_URL", ""))           # empty = in-memory cases
     api_keys: list[str] = field(default_factory=lambda: _list(os.environ.get("API_KEYS", "")))
     cors_origins: list[str] = field(default_factory=lambda: _list(os.environ.get("CORS_ORIGINS", "")))
+    pii_masking: bool = field(default_factory=lambda: os.environ.get("PII_MASKING", "true").lower() != "false")
 
 
 def settings() -> Settings:

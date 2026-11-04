@@ -175,7 +175,7 @@
           <ul class="reasons" id="reasons"></ul>
           <details class="memobox" open><summary>Credit memo <span class="muted" id="memoBy"></span></summary>
             <div class="memo" id="memo"></div></details>
-          <p class="muted" style="margin-top:10px">Case <code id="caseId"></code></p>
+          <p class="muted" style="margin-top:10px">Case <code id="caseId"></code> <span id="runInfo"></span></p>
         </section>
 
         <section class="card hidden" id="decideCard">
@@ -233,6 +233,17 @@ const STEPS = ["Guardrails: is this a real underwriting request?", "Documents: p
                "Consistency and document checks", "Policy rules and affordability (FOIR)", "Risk tier and credit memo"];
 const LABEL = { approve: "Approved", decline: "Declined", refer: "Referred" };
 const writer = w => w === "GPT" ? "written by GPT" : w ? "written by plain code (no GPT)" : "";
+// "Agents took 0.4 s · 2 GPT calls, 1,840 tokens, $0.0004 · rules sha256:ab12cd34ef56"
+function runText(m, rules) {
+  const parts = [];
+  if (m && m.total_ms != null) {
+    parts.push(`Agents took ${(m.total_ms / 1000).toFixed(1)} s`);
+    parts.push(m.llm_calls ? `${m.llm_calls} GPT call${m.llm_calls > 1 ? "s" : ""}, ${(m.input_tokens + m.output_tokens).toLocaleString("en-IN")} tokens`
+      + (m.cost_usd != null ? `, $${m.cost_usd.toFixed(4)}` : "") : "no GPT calls");
+  }
+  if (rules) parts.push(`rules ${rules}`);
+  return parts.join(" · ");
+}
 
 // ---------- helpers ----------
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -327,6 +338,7 @@ function showCase(c) {
   reasonsList($("reasons"), c.violations, c.flags);
   $("memo").textContent = c.memo || "(no memo)";
   $("memoBy").textContent = c.memo_written_by ? "· " + writer(c.memo_written_by) : "";
+  const run = runText(c.run_metrics, c.rules_version); $("runInfo").textContent = run ? "· " + run : "";
   $("highHint").classList.toggle("hidden", c.risk_tier !== "HIGH");
   $("caseCard").classList.remove("hidden"); $("decideCard").classList.remove("hidden");
 }
@@ -429,6 +441,13 @@ function openDetail(e) {
   if (d.memo) {
     const det = el("details", "memobox"); det.appendChild(el("summary", "", "Credit memo the underwriter saw"));
     det.appendChild(el("div", "memo", d.memo)); body.appendChild(det);
+  }
+  if (d.run_metrics || d.rules_version) {
+    body.appendChild(el("h3", "sub", "Run details"));
+    body.appendChild(el("p", "muted", runText(d.run_metrics, d.rules_version)));
+    const per = (d.run_metrics || {}).per_agent_ms || {};
+    if (Object.keys(per).length) body.appendChild(el("p", "muted", "Time by agent: " +
+      Object.entries(per).map(([a, ms]) => `${a} ${Math.round(ms)} ms`).join(", ")));
   }
   const raw = el("details", "memobox"); raw.appendChild(el("summary", "", "Raw audit record"));
   raw.appendChild(el("pre", "raw", JSON.stringify({ applicant_id: e.applicant_id, timestamp: e.timestamp, details: d }, null, 2))); body.appendChild(raw);

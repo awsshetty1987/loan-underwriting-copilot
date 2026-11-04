@@ -165,7 +165,8 @@ def extract_income_fields(raw_text: str) -> dict:
     plain = parse_salary_certificate(raw_text)
     try:
         answer = call_llm("You extract structured data from documents. Reply with JSON only.",
-                          SLIP_PROMPT.format(document=raw_text), json_mode=True)
+                          SLIP_PROMPT.format(document=raw_text), json_mode=True, purpose="read payslip",
+                          pii_names=[plain.get("name")])
     except Exception:                                    # OpenAI down or over quota: plain-text reader
         answer = None
     if answer:
@@ -248,7 +249,13 @@ def get_core_banking_history(applicant_id: str) -> dict:
 
 
 def get_policy_rules() -> dict:
-    return json.loads(storage.get_text("loan-policy/rules.json"))
+    """The rules, plus 'rules_version': a fingerprint of the file, saved with every decision so an auditor can
+    tell exactly which limits were in force (a 'version' label in the file, if any, is shown in front)."""
+    text = storage.get_text("loan-policy/rules.json")
+    rules = json.loads(text)
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    rules["rules_version"] = f"{rules['version']}@{digest}" if rules.get("version") else f"sha256:{digest}"
+    return rules
 
 
 def get_loan_request(applicant_id: str) -> dict | None:

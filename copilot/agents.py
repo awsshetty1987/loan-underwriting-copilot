@@ -12,6 +12,7 @@ from pathlib import Path
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from . import telemetry
 from .llm import call_llm
 from .tools import inr
 
@@ -103,14 +104,23 @@ async def use_tool(agent: str, tool: str, **args):
     """Checks the agent may use this tool, then calls it on the MCP server and returns plain Python data."""
     if tool not in AGENT_TOOLS.get(agent, set()):
         raise PermissionError(f"{agent} is not allowed to use {tool}")
-    session = await tool_client.session()
-    result = await session.call_tool(tool, args)
-    if result.isError:
-        raise RuntimeError(f"{tool} failed: {result.content[0].text}")
-    data = result.structuredContent
-    if data is None:
-        return json.loads(result.content[0].text)
-    return data["result"] if set(data) == {"result"} else data
+    with telemetry.tracer.start_as_current_span(f"tool {tool}") as span:
+        span.set_attribute("copilot.agent", agent)
+        session = await tool_client.session()
+        result = await session.call_tool(tool, args)
+        if result.isError:
+            span.set_attribute("error", True)
+            raise RuntimeError(f"{tool} failed: {result.content[0].text}")
+        data = result.structuredContent
+        if data is None:
+            data = json.loads(result.content[0].text)
+        elif set(data) == {"result"}:
+            data = data["result"]
+        if isinstance(data, dict) and "llm_usage" in data:      # GPT calls made inside the tool server process
+            for call in data.pop("llm_usage"):
+                telemetry.add_llm_span(call)
+                telemetry.record_llm_call(call)
+        return data
 
 
 def rupees(amount) -> str:
@@ -237,7 +247,7 @@ def memo_drafter_agent(facts: dict) -> dict:
     """Returns {'memo': text, 'written_by': 'GPT' or 'fallback'}. A memo that says approved/rejected is thrown away."""
     facts = {**facts, "why_this_tier": tier_reason(facts)}
     try:
-        text = call_llm(MEMO_RULES, json.dumps(facts, indent=2))
+        text = call_llm(MEMO_RULES, json.dumps(facts, indent=2), purpose="write memo", pii_names=[facts.get("name")])
     except Exception as e:
         log.warning("GPT unavailable (%s), using the plain-code memo", type(e).__name__)
         text = None

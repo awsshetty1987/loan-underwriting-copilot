@@ -10,3 +10,5 @@ local_data/
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+eval-report.md
+eval-results.json
