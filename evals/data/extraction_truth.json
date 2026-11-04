@@ -1,0 +1,295 @@
+{
+ "_about": "Payslip fields as typed in the source text the test PDFs were made from (git 478c62b^). APP_2028 was made as a PDF directly, so it has no independent truth and is left out.",
+ "applicants": {
+  "APP_1000": {
+   "name": "Vikram Nair",
+   "employer": "TCS",
+   "pan": "HEXDV9935C",
+   "date_of_joining": "2024-12-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 120000.0,
+   "net_pay": 95600.0,
+   "total_deductions": 24400.0
+  },
+  "APP_1001": {
+   "name": "Priya Nair",
+   "employer": "Cognizant",
+   "pan": "HQTAR4257W",
+   "date_of_joining": "2023-11-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 90000.0,
+   "net_pay": 73800.0,
+   "total_deductions": 16200.0
+  },
+  "APP_1002": {
+   "name": "Meera Gupta",
+   "employer": "Cognizant",
+   "pan": "ZAYZF7924K",
+   "date_of_joining": "2022-10-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 120000.0,
+   "net_pay": 95600.0,
+   "total_deductions": 24400.0
+  },
+  "APP_1003": {
+   "name": "Rahul Menon",
+   "employer": "Wipro",
+   "pan": "DCMDL6635T",
+   "date_of_joining": "2021-09-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  },
+  "APP_1004": {
+   "name": "Suresh Iyer",
+   "employer": "Infosys",
+   "pan": "MCRJU6925S",
+   "date_of_joining": "2020-08-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  },
+  "APP_1005": {
+   "name": "Sneha Gupta",
+   "employer": "TCS",
+   "pan": "CHDMI8428U",
+   "date_of_joining": "2019-07-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 45000.0,
+   "net_pay": 41000.0,
+   "total_deductions": 4000.0
+  },
+  "APP_1006": {
+   "name": "Sneha Gupta",
+   "employer": "Wipro",
+   "pan": "WVUCT3803R",
+   "date_of_joining": "2024-04-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  },
+  "APP_1007": {
+   "name": "Karthik Gupta",
+   "employer": "HDFC Bank",
+   "pan": "UWRHV6313Y",
+   "date_of_joining": "2023-03-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 120000.0,
+   "net_pay": 95600.0,
+   "total_deductions": 24400.0
+  },
+  "APP_1008": {
+   "name": "Rahul Menon",
+   "employer": "HDFC Bank",
+   "pan": "MICGS6155G",
+   "date_of_joining": "2022-02-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1009": {
+   "name": "Arjun Rao",
+   "employer": "Tech Mahindra",
+   "pan": "EIEHX9830I",
+   "date_of_joining": "2021-01-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 120000.0,
+   "net_pay": 95600.0,
+   "total_deductions": 24400.0
+  },
+  "APP_1010": {
+   "name": "Karthik Menon",
+   "employer": "Cognizant",
+   "pan": "HEQPC1771D",
+   "date_of_joining": "2019-12-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 120000.0,
+   "net_pay": 95600.0,
+   "total_deductions": 24400.0
+  },
+  "APP_1011": {
+   "name": "Karthik Iyer",
+   "employer": "Wipro",
+   "pan": "MMTOQ5119R",
+   "date_of_joining": "2024-09-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 45000.0,
+   "net_pay": 41000.0,
+   "total_deductions": 4000.0
+  },
+  "APP_1012": {
+   "name": "Suresh Gupta",
+   "employer": "TCS",
+   "pan": "YUKDJ8123F",
+   "date_of_joining": "2023-08-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1013": {
+   "name": "Pooja Gupta",
+   "employer": "Infosys",
+   "pan": "QYFQD5889U",
+   "date_of_joining": "2022-07-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 75000.0,
+   "net_pay": 62900.0,
+   "total_deductions": 12100.0
+  },
+  "APP_1014": {
+   "name": "Rahul Reddy",
+   "employer": "HDFC Bank",
+   "pan": "RYQAT6310P",
+   "date_of_joining": "2021-06-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 90000.0,
+   "net_pay": 73800.0,
+   "total_deductions": 16200.0
+  },
+  "APP_1015": {
+   "name": "Lakshmi Gupta",
+   "employer": "TCS",
+   "pan": "HBHSC2403X",
+   "date_of_joining": "2020-05-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1016": {
+   "name": "Suresh Reddy",
+   "employer": "TCS",
+   "pan": "EVPRF5342Q",
+   "date_of_joining": "2019-04-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 75000.0,
+   "net_pay": 62900.0,
+   "total_deductions": 12100.0
+  },
+  "APP_1017": {
+   "name": "Suresh Nair",
+   "employer": "Cognizant",
+   "pan": "WJMVU7118O",
+   "date_of_joining": "2024-01-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 90000.0,
+   "net_pay": 73800.0,
+   "total_deductions": 16200.0
+  },
+  "APP_1018": {
+   "name": "Sneha Iyer",
+   "employer": "Tech Mahindra",
+   "pan": "KASRH4608A",
+   "date_of_joining": "2022-12-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 90000.0,
+   "net_pay": 73800.0,
+   "total_deductions": 16200.0
+  },
+  "APP_1019": {
+   "name": "Rohan Menon",
+   "employer": "Infosys",
+   "pan": "CQHIV8953G",
+   "date_of_joining": "2021-11-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1020": {
+   "name": "Meera Rao",
+   "employer": "Wipro",
+   "pan": "HZPZN4119D",
+   "date_of_joining": "2020-10-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 90000.0,
+   "net_pay": 73800.0,
+   "total_deductions": 16200.0
+  },
+  "APP_1021": {
+   "name": "Karthik Rao",
+   "employer": "Cognizant",
+   "pan": "XBVUU2612B",
+   "date_of_joining": "2019-09-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1022": {
+   "name": "Priya Nair",
+   "employer": "Self-Employed",
+   "pan": "GGROE7912F",
+   "date_of_joining": "2024-06-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 75000.0,
+   "net_pay": 62900.0,
+   "total_deductions": 12100.0
+  },
+  "APP_1023": {
+   "name": "Priya Rao",
+   "employer": "Tech Mahindra",
+   "pan": "ZRDBU9856A",
+   "date_of_joining": "2023-05-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  },
+  "APP_1024": {
+   "name": "Divya Rao",
+   "employer": "HDFC Bank",
+   "pan": "GMBFM1035M",
+   "date_of_joining": "2022-04-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1025": {
+   "name": "Arjun Rao",
+   "employer": "Wipro",
+   "pan": "ARJPR4821K",
+   "date_of_joining": "2023-12-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 47700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1026": {
+   "name": "Kavya Shah",
+   "employer": "TCS",
+   "pan": "KAVPS7314M",
+   "date_of_joining": "2023-02-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  },
+  "APP_1027": {
+   "name": "Rohan Das",
+   "employer": "HDFC Bank",
+   "pan": "ROHPD5590Q",
+   "date_of_joining": "2024-04-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 35000.0,
+   "net_pay": 32700.0,
+   "total_deductions": 2300.0
+  },
+  "APP_1028": {
+   "name": "Neha Kulkarni",
+   "employer": "Infosys",
+   "pan": "NEHPK2687T",
+   "date_of_joining": "2025-11-26",
+   "pay_date": "2026-06-26",
+   "declared_income": 60000.0,
+   "net_pay": 52000.0,
+   "total_deductions": 8000.0
+  }
+ }
+}

@@ -2,6 +2,7 @@
 It talks over stdin/stdout; the agents start it once with: python -m copilot.mcp_server"""
 from mcp.server.fastmcp import FastMCP
 
+from . import telemetry
 from . import tools as t
 
 mcp = FastMCP("loan-underwriting-tools", log_level="WARNING")
@@ -15,8 +16,11 @@ def find_missing_documents(applicant_id: str) -> list[str]:
 
 @mcp.tool()
 def read_salary_slip(applicant_id: str) -> dict:
-    """Reads the payslip: gross (declared_income), net_pay, earnings, deductions, employer, name, pan, dates."""
-    return t.extract_income_fields(t.get_document(applicant_id, "income"))
+    """Reads the payslip: gross (declared_income), net_pay, earnings, deductions, employer, name, pan, dates.
+    llm_usage = the GPT calls it made (tokens, cost, time), which the agent takes off and adds to the case."""
+    with telemetry.collect_llm_calls() as calls:
+        fields = t.extract_income_fields(t.get_document(applicant_id, "income"))
+    return {**fields, "llm_usage": calls}
 
 
 @mcp.tool()

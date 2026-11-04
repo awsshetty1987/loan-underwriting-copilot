@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from . import tools
+from . import telemetry, tools
 from .agents import tool_client
 from .config import settings
 from .workflow import DECISIONS, CaseConflict, CaseNotFound, CaseService
@@ -22,6 +22,7 @@ SCREEN = Path(__file__).parent / "static" / "screen.html"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    telemetry.setup_tracing()
     url = settings().database_url
     if url:                                            # PROD: paused cases survive restarts and deploys
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver

@@ -20,6 +20,8 @@ aws s3 sync sample_data s3://loan-bucket2026/
 In the AWS console (region eu-north-1): Secrets Manager → Store a new secret → Other type of secret → **Plaintext** → paste only the key → name it `loan-copilot/openai`.
 Terraform only reads this secret and never deletes it. It costs about $0.40 a month.
 
+**Once, optional: store a LangSmith key** the same way, named `loan-copilot/langsmith`, to see every case as a trace in [LangSmith](https://smith.langchain.com) (project `loan-copilot`). LangSmith is an outside service: it receives the case data (GPT prompts are masked, see below).
+
 **Each demo: bring it up** (takes about 5 minutes the first time)
 
 ```bash
@@ -38,6 +40,34 @@ Nothing to type in: the app's own keys are made fresh in Secrets Manager on ever
 ```bash
 terraform destroy              # type yes. Removes everything except the S3 bucket.
 ```
+
+## Tracing, cost and safety around GPT
+
+- **Traces in AWS X-Ray.** Every case is one trace: a span per agent, per tool call and per GPT call, with tokens and cost. Open the AWS console → X-Ray → Traces (region eu-north-1) and filter with `annotation.copilot_applicant_id = "APP_1008"` or `annotation.copilot_risk_tier = "HIGH"`. A small ADOT collector container next to the app forwards them; `terraform apply -var tracing=false` turns it off. Locally, set `OTEL_EXPORTER_OTLP_ENDPOINT` to any OpenTelemetry collector.
+- **LangSmith**, if its key is stored (above): the LangGraph run and each GPT prompt and answer.
+- **Time and cost per case.** Each case records how long every agent took and what its GPT calls cost (`run_metrics`). The screen shows it under the memo and in the audit drawer, and it is saved in the audit record. Prices are list prices for the model (see `copilot/telemetry.py`); set `OPENAI_PRICE_PER_1M=0.15,0.60` to use your own.
+- **No personal data to GPT.** PAN, Aadhaar, phone numbers, e-mail addresses, account numbers and the applicant's name are replaced by tokens such as `[PAN_1]` before a prompt leaves, and put back in the answer (`copilot/pii.py`). `PII_MASKING=false` turns it off.
+- **Rules version on every decision.** The audit record keeps a fingerprint of `rules.json` (`rules_version`), so an auditor can tell which limits were in force.
+
+## Evals
+
+```bash
+python -m evals.run            # the report; --ci also fails if a score drops under evals/thresholds.json
+python -m evals.run --judge    # with OPENAI_API_KEY set: GPT reads payslips and writes memos, and grades each memo
+```
+
+It runs all 30 applicants through the real workflow and scores:
+
+| Check | How |
+|---|---|
+| Payslip extraction | 8 fields on 29 payslips vs the text the PDFs were made from (`evals/data/extraction_truth.json`) |
+| Risk tier | Expected tier per applicant (`evals/data/tier_labels.json`: 10 checked by hand, 20 frozen from today's rules) |
+| Fraud | The 4 planted cases must come out HIGH with the right flag; no clean applicant may get a document flag |
+| Memo | No "approved/rejected", ends with the sign-off line, names the tier, and every number in it appears in the case facts. With `--judge`, GPT also scores faithfulness 1 to 5 |
+| Guardrails | 16 requests, including bypass and injection attempts (`evals/data/guardrail_cases.json`) |
+| Time and cost | p50 / p95 machine time per case, GPT calls, tokens and dollars per case |
+
+CI runs it on every pull request without GPT and puts the report on the run's summary page. Run it with a key before changing the model or a prompt, and compare with the last report.
 
 ## Test data (`sample_data/`)
 
@@ -73,4 +103,7 @@ pytest -q                                              # no AWS or OpenAI needed
 | `copilot/mcp_server.py` | The tool server the agents call |
 | `copilot/bank_systems_mock.py` | Stand-in for the bank's systems: credit bureau and core banking, looked up by PAN |
 | `copilot/storage.py` | Reads and writes S3 (or a local folder in tests) |
+| `copilot/telemetry.py` | Tracing (OpenTelemetry) and time / cost per agent |
+| `copilot/pii.py` | Masks personal data before a GPT call |
+| `evals/` | The evaluation suite and its labelled data |
 | `tests/` | Automated tests; `make_sample_pdfs.py` made the test PDFs |

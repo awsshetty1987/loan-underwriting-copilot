@@ -1,0 +1,10 @@
+{
+ "_about": "CI fails if a score drops below these. Plain-code mode is exact today, so most limits are 100%.",
+ "extraction_field_accuracy": 0.95,
+ "tier_accuracy": 1.0,
+ "fraud_recall": 1.0,
+ "false_fraud_alarms_max": 0,
+ "memo_pass_rate": 1.0,
+ "guardrail_accuracy": 1.0,
+ "p95_case_ms_max": 20000
+}

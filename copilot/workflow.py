@@ -1,12 +1,13 @@
 """The LangGraph workflow (NB03): one node per agent, stop points after the first three, and a pause for the
 human underwriter after the memo. Paused cases are kept by the checkpointer (Postgres in PROD)."""
+import operator
 import uuid
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
-from . import agents
+from . import agents, telemetry
 
 DECISIONS = {"approve", "decline", "refer"}        # refer = more documents or a senior review
 
@@ -23,6 +24,7 @@ class LoanState(TypedDict, total=False):
     risk_tier: str
     memo: dict
     human_decision: dict
+    metrics: Annotated[list, operator.add]     # one entry per agent run: time and GPT calls (telemetry.py)
 
 
 def guardrails_node(state: LoanState) -> dict:
@@ -90,7 +92,9 @@ async def audit_node(state: LoanState) -> dict:
         "memo": state["memo"]["memo"], "memo_written_by": state["memo"]["written_by"],
         "decision": human["decision"] if human else "pending human underwriter sign-off",
         "decided_by": human["underwriter"] if human else None,
-        "comment": human["comment"] if human else None})
+        "comment": human["comment"] if human else None,
+        "rules_version": state["policy"]["rules"].get("rules_version"),
+        "run_metrics": telemetry.summarize(state.get("metrics"))})
     return {"status": "done"}
 
 
@@ -103,7 +107,7 @@ def build_workflow(checkpointer, with_human_review: bool = True):
     for name, node in [("guardrails", guardrails_node), ("documents", documents_node), ("bureau", bureau_node),
                        ("consistency", consistency_node), ("policy", policy_node), ("risk", risk_node),
                        ("memo", memo_node), ("audit", audit_node)]:
-        graph.add_node(name, node)
+        graph.add_node(name, telemetry.traced_node(name)(node))
     graph.add_edge(START, "guardrails")
     graph.add_conditional_edges("guardrails", _stop_or("documents"), ["documents", END])
     graph.add_conditional_edges("documents", _stop_or("bureau"), ["bureau", END])
@@ -125,7 +129,9 @@ def _screen_facts(state: dict) -> dict:
     """The few extra facts the screen shows next to the tier: who, credit score, hard-rule failures."""
     slip, report, policy = state.get("slip") or {}, state.get("report") or {}, state.get("policy") or {}
     return {"name": slip.get("name"), "employer": slip.get("employer"), "credit_score": report.get("credit_score"),
-            "violations": policy.get("violations"), "memo_written_by": (state.get("memo") or {}).get("written_by")}
+            "violations": policy.get("violations"), "memo_written_by": (state.get("memo") or {}).get("written_by"),
+            "rules_version": (policy.get("rules") or {}).get("rules_version"),
+            "run_metrics": telemetry.summarize(state.get("metrics"))}
 
 
 class CaseNotFound(LookupError):
@@ -148,7 +154,13 @@ class CaseService:
 
     async def start(self, request_text: str) -> dict:
         case_id = uuid.uuid4().hex[:12]
-        state = await self.workflow.ainvoke({"request": request_text}, self._config(case_id))
+        with telemetry.tracer.start_as_current_span("underwrite case") as span:
+            span.set_attribute("copilot.case_id", case_id)
+            state = await self.workflow.ainvoke({"request": request_text}, self._config(case_id))
+            span.set_attribute("copilot.applicant_id", state.get("applicant_id") or "")
+            span.set_attribute("copilot.risk_tier", state.get("risk_tier") or "")
+            span.set_attribute("copilot.status", "waiting_for_underwriter" if "__interrupt__" in state
+                               else state.get("status", ""))
         waiting = "__interrupt__" in state
         return {"case_id": case_id, "status": "waiting_for_underwriter" if waiting else state["status"],
                 "applicant_id": state.get("applicant_id"), "risk_tier": state.get("risk_tier"),
@@ -179,6 +191,9 @@ class CaseService:
         if decision == "approve" and current["risk_tier"] == "HIGH" and not (comment or "").strip():
             raise ValueError("Approving a HIGH-risk application needs a written reason (comment)")
         answer = {"decision": decision, "underwriter": underwriter.strip(), "comment": (comment or "").strip()}
-        state = await self.workflow.ainvoke(Command(resume=answer), self._config(case_id))
+        with telemetry.tracer.start_as_current_span("underwriter decision") as span:
+            span.set_attribute("copilot.case_id", case_id)
+            span.set_attribute("copilot.decision", decision)
+            state = await self.workflow.ainvoke(Command(resume=answer), self._config(case_id))
         return {"case_id": case_id, "status": state["status"], "applicant_id": state["applicant_id"],
                 "risk_tier": state["risk_tier"], **state["human_decision"]}

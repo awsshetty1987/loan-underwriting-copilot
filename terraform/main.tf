@@ -29,6 +29,16 @@ variable "openai_secret_name" {
   default     = "loan-copilot/openai"
 }
 
+variable "langsmith_secret_name" {
+  description = "Optional Secrets Manager secret (plain text) holding a LangSmith API key. If it exists, every case is also traced in LangSmith (project loan-copilot). Terraform only reads it."
+  default     = "loan-copilot/langsmith"
+}
+
+variable "tracing" {
+  description = "Send OpenTelemetry traces (one per case: agents, tools, GPT calls) to AWS X-Ray through an ADOT collector next to the app"
+  default     = true
+}
+
 variable "allowed_ip" {
   description = "Who may open the app. Empty = this computer's public IP only."
   default     = ""
@@ -51,9 +61,19 @@ data "aws_secretsmanager_secrets" "openai" {
   }
 }
 
+# Same for an optional LangSmith key.
+data "aws_secretsmanager_secrets" "langsmith" {
+  filter {
+    name   = "name"
+    values = [var.langsmith_secret_name]
+  }
+}
+
 locals {
   openai_secret = one([for arn in data.aws_secretsmanager_secrets.openai.arns : arn
   if can(regex(":secret:${var.openai_secret_name}-[A-Za-z0-9]{6}$", arn))])
+  langsmith_secret = one([for arn in data.aws_secretsmanager_secrets.langsmith.arns : arn
+  if can(regex(":secret:${var.langsmith_secret_name}-[A-Za-z0-9]{6}$", arn))])
 }
 
 # ---------------- providers ----------------
@@ -190,7 +210,7 @@ resource "aws_iam_role_policy" "execution_secret" {
   role = aws_iam_role.execution.id
   policy = jsonencode({
     Version   = "2012-10-17"
-    Statement = [{ Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = compact([aws_secretsmanager_secret.app.arn, local.openai_secret]) }]
+    Statement = [{ Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = compact([aws_secretsmanager_secret.app.arn, local.openai_secret, local.langsmith_secret]) }]
   })
 }
 
@@ -211,6 +231,12 @@ resource "aws_iam_role_policy" "task_s3" {
       { Effect = "Allow", Action = "s3:PutObject", Resource = "${data.aws_s3_bucket.docs.arn}/loan-docs/*/audit/*" },
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "task_xray" { # the ADOT collector sends traces to X-Ray
+  count      = var.tracing ? 1 : 0
+  role       = aws_iam_role.task.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
 }
 
 # ---------------- network: a load balancer open to one IP ----------------
@@ -294,12 +320,25 @@ resource "aws_ecs_cluster" "app" {
 locals {
   secret  = aws_secretsmanager_secret.app.arn
   storage = [{ name = "STORAGE_BACKEND", value = "s3" }, { name = "S3_BUCKET", value = var.bucket }, { name = "AWS_REGION", value = var.region }]
-  logs = { for c in ["db", "bank-systems", "api"] : c => {
+  logs = { for c in ["db", "bank-systems", "api", "otel"] : c => {
     logDriver = "awslogs"
     options   = { "awslogs-group" = aws_cloudwatch_log_group.app.name, "awslogs-region" = var.region, "awslogs-stream-prefix" = c }
   } }
   bank_keys = ["CREDIT_BUREAU_API_KEY", "CORE_BANKING_API_KEY"]
-  image     = "${aws_ecr_repository.app.repository_url}@${docker_registry_image.app.sha256_digest}"
+  # The collector takes OTLP from the app on 127.0.0.1:4318 and forwards it to X-Ray. Indexed attributes become
+  # X-Ray annotations, so traces can be filtered by applicant, tier or case in the console.
+  otel_config = yamlencode({
+    receivers  = { otlp = { protocols = { http = { endpoint = "127.0.0.1:4318" } } } }
+    processors = { batch = {} }
+    exporters = { awsxray = { region = var.region, indexed_attributes = [
+    "copilot.applicant_id", "copilot.risk_tier", "copilot.case_id", "copilot.agent", "copilot.decision"] } }
+    service = { pipelines = { traces = { receivers = ["otlp"], processors = ["batch"], exporters = ["awsxray"] } } }
+  })
+  tracing_env = var.tracing ? [{ name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4318" },
+  { name = "OTEL_SERVICE_NAME", value = "loan-copilot" }, { name = "OTEL_AWS_XRAY_IDS", value = "true" }] : []
+  langsmith_env = local.langsmith_secret != null ? [{ name = "LANGSMITH_TRACING", value = "true" },
+  { name = "LANGSMITH_PROJECT", value = "loan-copilot" }] : []
+  image = "${aws_ecr_repository.app.repository_url}@${docker_registry_image.app.sha256_digest}"
 }
 
 resource "aws_ecs_task_definition" "app" {
@@ -314,7 +353,7 @@ resource "aws_ecs_task_definition" "app" {
     operating_system_family = "LINUX"
     cpu_architecture        = "X86_64"
   }
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     { # Postgres for cases waiting for the underwriter (gone on destroy; decisions stay in the S3 audit log)
       name              = "db", image = "public.ecr.aws/docker/library/postgres:16-alpine", essential = true
       memoryReservation = 256
@@ -335,13 +374,19 @@ resource "aws_ecs_task_definition" "app" {
       name         = "api", image = local.image, essential = true, memoryReservation = 512
       portMappings = [{ containerPort = 8000 }]
       environment = concat(local.storage, [{ name = "CREDIT_BUREAU_URL", value = "http://127.0.0.1:9000/credit-report" },
-      { name = "CORE_BANKING_URL", value = "http://127.0.0.1:9000/core-banking/history" }])
+      { name = "CORE_BANKING_URL", value = "http://127.0.0.1:9000/core-banking/history" }], local.tracing_env, local.langsmith_env)
       secrets = concat([for k in concat(["API_KEYS", "DATABASE_URL"], local.bank_keys) : { name = k, valueFrom = "${local.secret}:${k}::" }],
-      local.openai_secret != null ? [{ name = "OPENAI_API_KEY", valueFrom = local.openai_secret }] : [])
+        local.openai_secret != null ? [{ name = "OPENAI_API_KEY", valueFrom = local.openai_secret }] : [],
+      local.langsmith_secret != null ? [{ name = "LANGSMITH_API_KEY", valueFrom = local.langsmith_secret }] : [])
       dependsOn        = [{ containerName = "db", condition = "HEALTHY" }, { containerName = "bank-systems", condition = "START" }]
       logConfiguration = local.logs["api"]
     },
-  ])
+    ], var.tracing ? [{ # AWS Distro for OpenTelemetry: forwards the app's traces to X-Ray. Not essential: if it stops, the app keeps working
+      name              = "otel", image = "public.ecr.aws/aws-observability/aws-otel-collector:v0.50.0", essential = false
+      memoryReservation = 64
+      environment       = [{ name = "AOT_CONFIG_CONTENT", value = local.otel_config }]
+      logConfiguration  = local.logs["otel"]
+  }] : []))
 }
 
 resource "aws_ecs_service" "app" {
