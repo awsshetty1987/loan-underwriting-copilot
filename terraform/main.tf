@@ -34,6 +34,11 @@ variable "langsmith_secret_name" {
   default     = "loan-copilot/langsmith"
 }
 
+variable "langsmith_endpoint" {
+  description = "LangSmith API address for your account's region. Look at the address bar when signed in: smith.langchain.com = leave empty (US), eu.smith.langchain.com = https://eu.api.smith.langchain.com, apac.smith.langchain.com = https://apac.api.smith.langchain.com. A wrong region gives 403 Forbidden in the api log."
+  default     = ""
+}
+
 variable "tracing" {
   description = "Send OpenTelemetry traces (one per case: agents, tools, GPT calls) to AWS X-Ray through an ADOT collector next to the app"
   default     = true
@@ -336,8 +341,9 @@ locals {
   })
   tracing_env = var.tracing ? [{ name = "OTEL_EXPORTER_OTLP_ENDPOINT", value = "http://127.0.0.1:4318" },
   { name = "OTEL_SERVICE_NAME", value = "loan-copilot" }, { name = "OTEL_AWS_XRAY_IDS", value = "true" }] : []
-  langsmith_env = local.langsmith_secret != null ? [{ name = "LANGSMITH_TRACING", value = "true" },
-  { name = "LANGSMITH_PROJECT", value = "loan-copilot" }] : []
+  langsmith_env = local.langsmith_secret != null ? concat([{ name = "LANGSMITH_TRACING", value = "true" },
+    { name = "LANGSMITH_PROJECT", value = "loan-copilot" }],
+  var.langsmith_endpoint != "" ? [{ name = "LANGSMITH_ENDPOINT", value = var.langsmith_endpoint }] : []) : []
   image = "${aws_ecr_repository.app.repository_url}@${docker_registry_image.app.sha256_digest}"
 }
 
