@@ -22,6 +22,7 @@ SCREEN = Path(__file__).parent / "static" / "screen.html"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    telemetry.configure_logging()
     telemetry.setup_tracing()
     url = settings().database_url
     if url:                                            # PROD: paused cases survive restarts and deploys
