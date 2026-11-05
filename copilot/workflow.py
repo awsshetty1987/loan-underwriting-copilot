@@ -1,5 +1,6 @@
 """The LangGraph workflow (NB03): one node per agent, stop points after the first three, and a pause for the
 human underwriter after the memo. Paused cases are kept by the checkpointer (Postgres in PROD)."""
+import logging
 import operator
 import uuid
 from typing import Annotated, TypedDict
@@ -9,6 +10,7 @@ from langgraph.types import Command, interrupt
 
 from . import agents, telemetry
 
+log = logging.getLogger(__name__)
 DECISIONS = {"approve", "decline", "refer"}        # refer = more documents or a senior review
 
 
@@ -156,12 +158,23 @@ class CaseService:
         case_id = uuid.uuid4().hex[:12]
         with telemetry.tracer.start_as_current_span("underwrite case") as span:
             span.set_attribute("copilot.case_id", case_id)
-            state = await self.workflow.ainvoke({"request": request_text}, self._config(case_id))
+            tid = telemetry.trace_id()
+            log.info("case %s started: %r%s", case_id, request_text, f" (X-Ray trace {tid})" if tid else "")
+            try:
+                state = await self.workflow.ainvoke({"request": request_text}, self._config(case_id))
+            except Exception:
+                log.exception("case %s failed", case_id)
+                raise
             span.set_attribute("copilot.applicant_id", state.get("applicant_id") or "")
             span.set_attribute("copilot.risk_tier", state.get("risk_tier") or "")
             span.set_attribute("copilot.status", "waiting_for_underwriter" if "__interrupt__" in state
                                else state.get("status", ""))
         waiting = "__interrupt__" in state
+        m = telemetry.summarize(state.get("metrics"))
+        log.info("case %s %s: %s, tier %s, %.1f s, %d GPT call(s)%s", case_id, state.get("applicant_id") or "-",
+                 "waiting for underwriter" if waiting else f"{state.get('status')} ({state.get('reason') or ''})",
+                 state.get("risk_tier") or "-", m["total_ms"] / 1000, m["llm_calls"],
+                 f", ${m['cost_usd']:.6f}" if m["cost_usd"] else "")
         return {"case_id": case_id, "status": "waiting_for_underwriter" if waiting else state["status"],
                 "applicant_id": state.get("applicant_id"), "risk_tier": state.get("risk_tier"),
                 "memo": state.get("memo", {}).get("memo"), "reason": state.get("reason"),
@@ -194,6 +207,9 @@ class CaseService:
         with telemetry.tracer.start_as_current_span("underwriter decision") as span:
             span.set_attribute("copilot.case_id", case_id)
             span.set_attribute("copilot.decision", decision)
+            log.info("case %s %s: underwriter %s chose %s", case_id, current["applicant_id"], answer["underwriter"],
+                     decision)
             state = await self.workflow.ainvoke(Command(resume=answer), self._config(case_id))
+        log.info("case %s %s: decision saved to the audit log", case_id, current["applicant_id"])
         return {"case_id": case_id, "status": state["status"], "applicant_id": state["applicant_id"],
                 "risk_tier": state["risk_tier"], **state["human_decision"]}

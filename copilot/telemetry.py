@@ -24,11 +24,30 @@ _llm_calls: contextvars.ContextVar[list | None] = contextvars.ContextVar("llm_ca
 _configured = False
 
 
+def configure_logging():
+    """One readable line per event in the container log (CloudWatch): time, level, where, message.
+    LOG_LEVEL=DEBUG for more. Safe to call more than once."""
+    level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("copilot").setLevel(level)
+
+
+def trace_id() -> str:
+    """The current trace id as X-Ray shows it (1-xxxxxxxx-yyyy...), or '' when no trace is open."""
+    ctx = trace.get_current_span().get_span_context()
+    if not ctx.is_valid:
+        return ""
+    h = format(ctx.trace_id, "032x")
+    return f"1-{h[:8]}-{h[8:]}"
+
+
 def setup_tracing(service_name: str = "loan-copilot") -> bool:
     """Starts exporting spans if OTEL_EXPORTER_OTLP_ENDPOINT is set. Safe to call more than once."""
     global _configured
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
     if _configured or not endpoint:
+        if not endpoint:
+            log.info("OpenTelemetry tracing off (OTEL_EXPORTER_OTLP_ENDPOINT not set)")
         return _configured
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.resources import Resource
@@ -117,10 +136,11 @@ def _set_llm_attributes(span, call: dict):
 def traced_node(agent: str):
     """Wraps a LangGraph node: a span named after the agent, its time, and its GPT calls in state['metrics']."""
     def wrap(node):
-        def finish(result: dict | None, started: float, calls: list) -> dict:
+        def finish(state: dict, result: dict | None, started: float, calls: list) -> dict:
             entry = {"agent": agent, "ms": round((time.perf_counter() - started) * 1000, 1)}
             if calls:
                 entry["llm"] = calls
+            _log_agent(state, agent, result, entry)
             return {**(result or {}), "metrics": [entry]}
 
         if inspect.iscoroutinefunction(node):
@@ -128,20 +148,51 @@ def traced_node(agent: str):
             async def run_async(state):
                 with tracer.start_as_current_span(f"agent {agent}") as span, collect_llm_calls() as calls:
                     started = time.perf_counter()
-                    result = await node(state)
+                    try:
+                        result = await node(state)
+                    except Exception:
+                        log.exception("%s | agent %s failed", state.get("applicant_id") or "-", agent)
+                        raise
                     _mark_stop(span, result)
-                    return finish(result, started, calls)
+                    return finish(state, result, started, calls)
             return run_async
 
         @functools.wraps(node)
         def run_sync(state):
             with tracer.start_as_current_span(f"agent {agent}") as span, collect_llm_calls() as calls:
                 started = time.perf_counter()
-                result = node(state)
+                try:
+                    result = node(state)
+                except Exception:
+                    log.exception("%s | agent %s failed", state.get("applicant_id") or "-", agent)
+                    raise
                 _mark_stop(span, result)
-                return finish(result, started, calls)
+                return finish(state, result, started, calls)
         return run_sync
     return wrap
+
+
+def _log_agent(state: dict, agent: str, result: dict | None, entry: dict):
+    """e.g. 'APP_1008 | agent documents ok in 1211 ms, 1 GPT call(s), 1840 tokens, $0.000412'"""
+    result = result or {}
+    who = result.get("applicant_id") or state.get("applicant_id") or "-"
+    stopped = result.get("status") not in (None, "done")
+    words = f"stopped ({result['status']}: {result.get('reason') or ''})" if stopped else "ok"
+    line = f"{who} | agent {agent} {words} in {entry['ms']:.0f} ms"
+    calls = entry.get("llm") or []
+    if calls:
+        tokens = sum(c.get("input_tokens", 0) + c.get("output_tokens", 0) for c in calls)
+        costs = [c["cost_usd"] for c in calls if c.get("cost_usd") is not None]
+        line += f", {len(calls)} GPT call(s), {tokens} tokens" + (f", ${sum(costs):.6f}" if costs else "")
+    new_flags = [f for f in result.get("flags") or [] if f not in (state.get("flags") or [])]
+    if new_flags:
+        line += f", {len(new_flags)} flag(s): " + "; ".join(new_flags)
+    broken = (result.get("policy") or {}).get("violations")
+    if broken:
+        line += ", rules broken: " + "; ".join(broken)
+    if agent == "risk" and result.get("risk_tier"):
+        line += f" -> tier {result['risk_tier']}"
+    (log.warning if stopped else log.info)(line)
 
 
 def _mark_stop(span, result: dict | None):
