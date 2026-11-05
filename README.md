@@ -20,7 +20,7 @@ aws s3 sync sample_data s3://loan-bucket2026/
 In the AWS console (region eu-north-1): Secrets Manager → Store a new secret → Other type of secret → **Plaintext** → paste only the key → name it `loan-copilot/openai`.
 Terraform only reads this secret and never deletes it. It costs about $0.40 a month.
 
-**Once, optional: store a LangSmith key** the same way, named `loan-copilot/langsmith`, to see every case as a trace in [LangSmith](https://smith.langchain.com) (project `loan-copilot`). LangSmith is an outside service: it receives the case data (GPT prompts are masked, see below).
+**Once, optional: store a LangSmith key** the same way, named `loan-copilot/langsmith`, to see every case as a trace in [LangSmith](https://smith.langchain.com) (project `loan-copilot`). LangSmith is an outside service: it receives the case data (GPT prompts are masked, see below). If your LangSmith address is `eu.smith.langchain.com` or `apac.smith.langchain.com`, apply with `-var langsmith_endpoint=https://eu.api.smith.langchain.com` (or `https://apac.api.smith.langchain.com`); otherwise traces are refused with `403 Forbidden` in the api log.
 
 **Each demo: bring it up** (takes about 5 minutes the first time)
 
